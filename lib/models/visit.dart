@@ -1,3 +1,5 @@
+import 'geo_point.dart';
+
 /// Ítems del checklist de validación en el punto de venta (paso 3 del proceso).
 enum PointOfSaleCheck {
   productDisplayed('Producto exhibido'),
@@ -24,12 +26,20 @@ class Visit {
     required this.inventory,
     this.competitors = '',
     this.notes = '',
+    this.checkIn,
+    this.checkOut,
   });
 
   final String id;
   final String pharmacyId;
+
+  /// Hora del check-in (llegada). Coincide con la ubicación de [checkIn].
   final DateTime arrival;
   final DateTime departure;
+
+  /// Ubicación GPS al llegar y al salir de la farmacia.
+  final GeoPoint? checkIn;
+  final GeoPoint? checkOut;
 
   /// Checks marcados como cumplidos durante la visita.
   final Set<PointOfSaleCheck> checks;

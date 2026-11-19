@@ -2,13 +2,19 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/app_repository.dart';
 import '../models/pharmacy.dart';
+import '../services/location_service.dart';
 import 'pharmacy_detail_screen.dart';
 
 /// Ruta del día: lista de farmacias priorizadas y cobertura de la jornada.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.repository});
+  const HomeScreen({
+    super.key,
+    required this.repository,
+    required this.locationService,
+  });
 
   final AppRepository repository;
+  final LocationService locationService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => PharmacyDetailScreen(
           repository: widget.repository,
           pharmacy: pharmacy,
+          locationService: widget.locationService,
         ),
       ),
     );

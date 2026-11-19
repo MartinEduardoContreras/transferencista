@@ -1,12 +1,18 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'data/app_repository.dart';
+import 'services/location_service.dart';
 import 'screens/home_screen.dart';
 
 class TransferencistaApp extends StatelessWidget {
-  const TransferencistaApp({super.key, required this.repository});
+  const TransferencistaApp({
+    super.key,
+    required this.repository,
+    required this.locationService,
+  });
 
   final AppRepository repository;
+  final LocationService locationService;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +20,7 @@ class TransferencistaApp extends StatelessWidget {
       title: 'Transferencista',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
-      home: HomeScreen(repository: repository),
+      home: HomeScreen(repository: repository, locationService: locationService),
     );
   }
 }

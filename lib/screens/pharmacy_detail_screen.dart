@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/app_repository.dart';
 import '../models/pharmacy.dart';
 import '../models/visit.dart';
+import '../services/location_service.dart';
 import '../utils/format.dart';
 import '../widgets/info_section.dart';
 import 'visit_screen.dart';
@@ -13,10 +14,12 @@ class PharmacyDetailScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.pharmacy,
+    required this.locationService,
   });
 
   final AppRepository repository;
   final Pharmacy pharmacy;
+  final LocationService locationService;
 
   @override
   State<PharmacyDetailScreen> createState() => _PharmacyDetailScreenState();
@@ -29,6 +32,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
         builder: (_) => VisitScreen(
           repository: widget.repository,
           pharmacy: widget.pharmacy,
+          locationService: widget.locationService,
         ),
       ),
     );

@@ -10,7 +10,7 @@ Base funcional: documento *Transferencista en Colombia* (proceso de 8 etapas).
 |------|----------|--------|
 | 0 | Fundamentos: proyecto Flutter, arquitectura, tema, pruebas base | Hecho |
 | 1 | MVP local: ruta del día, preparación de visita, registro de visita | Hecho (datos de ejemplo) |
-| 2 | Evidencia en campo: GPS check-in/out, fotos antes/después, firma | Pendiente |
+| 2 | Evidencia en campo: GPS check-in/out (hecho), fotos antes/después, firma | En curso |
 | 3 | Pedido y seguimiento: pedido sugerido, seguimiento a la semana, recompra | Pendiente |
 | 4 | Backend: base de datos, sincronización offline, login y roles | Pendiente |
 | 5 | Indicadores y piloto: dashboard KPIs, pruebas con usuarios, despliegue | Pendiente |
