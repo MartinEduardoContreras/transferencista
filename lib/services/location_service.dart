@@ -23,6 +23,9 @@ class LocationResult {
 /// en pruebas se usa un doble que devuelve resultados fijos.
 abstract class LocationService {
   Future<LocationResult> currentPosition();
+
+  /// Posiciones mientras dure la visita (para el registro de trayecto).
+  Stream<GeoPoint> watchPositions();
 }
 
 /// Mensaje en español para mostrar al usuario según el fallo.

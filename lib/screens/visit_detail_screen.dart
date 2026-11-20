@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../data/app_repository.dart';
@@ -59,6 +61,54 @@ class VisitDetailScreen extends StatelessWidget {
                     for (final entry in visit.inventory.entries)
                       InfoRow(entry.key, '${entry.value} unidades'),
                   ],
+          ),
+          const SizedBox(height: 12),
+          InfoSection(
+            title: 'Fotos',
+            rows: visit.photos.isEmpty
+                ? [const InfoRow('Sin fotos', '—')]
+                : [
+                    for (final photo in visit.photos)
+                      InfoRow(
+                        photo.kind.label,
+                        formatTime(photo.takenAt),
+                      ),
+                  ],
+          ),
+          if (visit.photos.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (final photo in visit.photos) ...[
+                  Expanded(
+                    child: AspectRatio(
+                      aspectRatio: 3 / 4,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(File(photo.path), fit: BoxFit.cover),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          InfoSection(
+            title: 'Registro de trayecto',
+            rows: [
+              InfoRow(
+                'Consentimiento',
+                visit.trackingConsent ? 'Aceptado' : 'No aceptado',
+              ),
+              InfoRow('Puntos registrados', '${visit.track.length}'),
+              for (final point in visit.track)
+                InfoRow(
+                  formatTime(point.time),
+                  '${point.distanceFromSiteMeters.round()} m · ${point.point.label}',
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           InfoSection(

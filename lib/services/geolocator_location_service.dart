@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/geo_point.dart';
@@ -43,5 +44,46 @@ class GeolocatorLocationService implements LocationService {
     } catch (_) {
       return const LocationResult.failure(LocationFailure.unavailable);
     }
+  }
+
+  @override
+  Stream<GeoPoint> watchPositions() {
+    const settings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 25,
+    );
+    // En Android muestra una notificación persistente mientras se registra el trayecto,
+    // para que la transferencista siempre sepa que está activo.
+    final androidSettings = AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 25,
+      foregroundNotificationConfig: const ForegroundNotificationConfig(
+        notificationTitle: 'Transferencista: registro de trayecto activo',
+        notificationText:
+            'Se registra tu posición durante la visita. Te avisaremos si te alejas más de 500 m.',
+        enableWakeLock: true,
+      ),
+    );
+    final iosSettings = AppleSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 25,
+      allowBackgroundLocationUpdates: true,
+      showBackgroundLocationIndicator: true,
+    );
+
+    final effective = switch (defaultTargetPlatform) {
+      TargetPlatform.android => androidSettings,
+      TargetPlatform.iOS => iosSettings,
+      _ => settings,
+    };
+    return Geolocator.getPositionStream(
+      locationSettings: effective,
+    ).map(
+      (position) => GeoPoint(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracyMeters: position.accuracy,
+      ),
+    );
   }
 }

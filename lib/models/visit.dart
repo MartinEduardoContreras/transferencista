@@ -1,4 +1,6 @@
 import 'geo_point.dart';
+import 'track_point.dart';
+import 'visit_photo.dart';
 
 /// Ítems del checklist de validación en el punto de venta (paso 3 del proceso).
 enum PointOfSaleCheck {
@@ -28,6 +30,9 @@ class Visit {
     this.notes = '',
     this.checkIn,
     this.checkOut,
+    this.photos = const [],
+    this.trackingConsent = false,
+    this.track = const [],
   });
 
   final String id;
@@ -48,6 +53,15 @@ class Visit {
   final Map<String, int> inventory;
   final String competitors;
   final String notes;
+
+  /// Fotos de exhibición tomadas durante la visita.
+  final List<VisitPhoto> photos;
+
+  /// La transferencista aceptó el registro de trayecto al iniciar la visita.
+  final bool trackingConsent;
+
+  /// Puntos registrados cuando la persona se alejó más de 500 m de la farmacia.
+  final List<TrackPoint> track;
 
   Duration get duration => departure.difference(arrival);
 }

@@ -8,6 +8,8 @@ import 'package:transferencista/models/visit.dart';
 import 'package:transferencista/screens/new_pharmacy_screen.dart';
 import 'package:transferencista/screens/visit_screen.dart';
 import 'package:transferencista/services/location_service.dart';
+import 'package:transferencista/services/movement_tracker.dart';
+import 'package:transferencista/utils/geo.dart';
 import 'package:transferencista/utils/format.dart';
 
 import 'fakes/fake_location_service.dart';
@@ -85,7 +87,14 @@ void main() {
 
     await tester.tap(find.text('Registrar llegada'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Acepto'));
+    await tester.pumpAndSettle();
 
+    await tester.dragUntilVisible(
+      find.text('Validación en el punto'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
     expect(find.text('Validación en el punto'), findsOneWidget);
     await tester.dragUntilVisible(
       find.text('Finalizar visita'),
@@ -93,6 +102,41 @@ void main() {
       const Offset(0, -200),
     );
     expect(find.text('Finalizar visita'), findsOneWidget);
+  });
+
+  test('la distancia entre dos puntos es correcta', () {
+    const a = GeoPoint(latitude: 4.7, longitude: -74.07, accuracyMeters: 5);
+    // 0,01 grados de latitud son aproximadamente 1.112 m.
+    const b = GeoPoint(latitude: 4.71, longitude: -74.07, accuracyMeters: 5);
+    expect(distanceMeters(a, b), closeTo(1112, 5));
+  });
+
+  test('el trayecto avisa al salir del radio y registra cada 10 minutos', () {
+    const site = GeoPoint(latitude: 4.7, longitude: -74.07, accuracyMeters: 5);
+    // ~111 m por cada 0,001 grados de latitud.
+    const near = GeoPoint(latitude: 4.7001, longitude: -74.07, accuracyMeters: 5);
+    const far = GeoPoint(latitude: 4.706, longitude: -74.07, accuracyMeters: 5); // ~670 m
+    final t0 = DateTime(2026, 11, 19, 9);
+    final tracker = MovementTracker(site: site);
+
+    expect(tracker.onPosition(near, t0), TrackEvent.none);
+    expect(tracker.onPosition(far, t0), TrackEvent.leftRadius);
+    expect(tracker.points, hasLength(1));
+
+    // Sigue fuera antes de 10 minutos: no registra ni avisa de nuevo.
+    expect(tracker.onPosition(far, t0.add(const Duration(minutes: 5))), TrackEvent.none);
+    expect(tracker.points, hasLength(1));
+
+    // A los 10 minutos registra otro punto.
+    expect(
+      tracker.onPosition(far, t0.add(const Duration(minutes: 10))),
+      TrackEvent.logged,
+    );
+    expect(tracker.points, hasLength(2));
+
+    // Vuelve al radio: no registra más puntos.
+    expect(tracker.onPosition(near, t0.add(const Duration(minutes: 20))), TrackEvent.none);
+    expect(tracker.points, hasLength(2));
   });
 
   test('addPharmacy agrega la farmacia a la ruta y notifica', () {
