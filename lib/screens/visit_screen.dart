@@ -7,8 +7,9 @@ import '../models/visit.dart';
 import '../services/location_service.dart';
 import '../utils/format.dart';
 
-/// Registro de la visita: check-in GPS, checklist del punto, inventario,
-/// competencia y notas. El check-out GPS se pide al finalizar.
+/// Registro de la visita. Primero solo se ofrece el check-in GPS; después del
+/// check-in aparecen la validación del punto, el inventario, la competencia y
+/// las observaciones. El check-out GPS se pide al finalizar.
 ///
 /// Pendiente para fases siguientes (ver docs/FASES.md):
 /// fotos antes/después, pedido sugerido, firma y validación de distancia.
@@ -145,60 +146,64 @@ class _VisitScreenState extends State<VisitScreen> {
                   FilledButton.icon(
                     onPressed: _busy || checkedIn ? null : _doCheckIn,
                     icon: const Icon(Icons.my_location),
-                    label: Text(checkedIn ? 'Llegada registrada' : 'Registrar llegada'),
+                    label: Text(
+                      checkedIn ? 'Llegada registrada' : 'Registrar llegada',
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text('Validación en el punto', style: theme.textTheme.titleMedium),
-          for (final check in PointOfSaleCheck.values)
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(check.label),
-              value: _checks.contains(check),
-              onChanged: (value) => _toggle(check, value),
-            ),
-          const SizedBox(height: 16),
-          Text('Inventario (unidades)', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          for (final entry in _inventory.entries)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TextField(
-                controller: entry.value,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: entry.key,
-                  border: const OutlineInputBorder(),
+          if (checkedIn) ...[
+            const SizedBox(height: 16),
+            Text('Validación en el punto', style: theme.textTheme.titleMedium),
+            for (final check in PointOfSaleCheck.values)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(check.label),
+                value: _checks.contains(check),
+                onChanged: (value) => _toggle(check, value),
+              ),
+            const SizedBox(height: 16),
+            Text('Inventario (unidades)', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            for (final entry in _inventory.entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextField(
+                  controller: entry.value,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: entry.key,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _competitors,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Competencia (marcas, promociones, precios)',
+                border: OutlineInputBorder(),
+              ),
             ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _competitors,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Competencia (marcas, promociones, precios)',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notes,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Observaciones',
+                border: OutlineInputBorder(),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _notes,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Observaciones',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _busy ? null : _finish,
+              icon: const Icon(Icons.check),
+              label: Text(_busy ? 'Obteniendo ubicación…' : 'Finalizar visita'),
             ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _busy || !checkedIn ? null : _finish,
-            icon: const Icon(Icons.check),
-            label: Text(_busy ? 'Obteniendo ubicación…' : 'Finalizar visita'),
-          ),
+          ],
         ],
       ),
     );

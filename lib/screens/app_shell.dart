@@ -4,9 +4,10 @@ import '../data/app_repository.dart';
 import '../services/location_service.dart';
 import 'home_screen.dart';
 import 'pharmacies_screen.dart';
+import 'plan_screen.dart';
 import 'visits_screen.dart';
 
-/// Contenedor principal con la navegación inferior: Hoy, Visitas y Farmacias.
+/// Contenedor principal con la navegación inferior: Hoy, Plan, Visitas y Farmacias.
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
@@ -34,6 +35,7 @@ class _AppShellState extends State<AppShell> {
             repository: widget.repository,
             locationService: widget.locationService,
           ),
+          PlanScreen(repository: widget.repository),
           VisitsScreen(repository: widget.repository),
           PharmaciesScreen(
             repository: widget.repository,
@@ -49,6 +51,11 @@ class _AppShellState extends State<AppShell> {
             icon: Icon(Icons.today_outlined),
             selectedIcon: Icon(Icons.today),
             label: 'Hoy',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note),
+            label: 'Plan',
           ),
           NavigationDestination(
             icon: Icon(Icons.fact_check_outlined),

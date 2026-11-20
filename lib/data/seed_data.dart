@@ -64,6 +64,16 @@ const seedPharmacies = <Pharmacy>[
   ),
 ];
 
+/// Plan de ejemplo para hoy, con las cuatro farmacias en orden de visita.
+Map<DateTime, List<String>> buildSeedPlans(DateTime now) => {
+      DateTime(now.year, now.month, now.day): const [
+        'ph-001',
+        'ph-002',
+        'ph-003',
+        'ph-004',
+      ],
+    };
+
 /// Visitas de ejemplo en días anteriores, para que la pantalla de visitas
 /// tenga datos. Se generan respecto a [now] para no marcar la ruta de hoy.
 List<Visit> buildSeedVisits(DateTime now) {

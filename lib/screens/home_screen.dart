@@ -6,7 +6,7 @@ import '../services/location_service.dart';
 import '../utils/format.dart';
 import 'pharmacy_detail_screen.dart';
 
-/// Planeación del día: farmacias priorizadas, estado de cada una y cobertura.
+/// Planeación del día: las farmacias del plan de hoy, en orden de visita, y la cobertura.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
@@ -36,9 +36,10 @@ class HomeScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: repository,
       builder: (context, _) {
-        final route = repository.route;
-        final visited = route.where(repository.wasVisitedToday).length;
-        final coverage = route.isEmpty ? 0.0 : visited / route.length;
+        final today = DateTime.now();
+        final planned = repository.planFor(today);
+        final visited = planned.where(repository.wasVisitedToday).length;
+        final coverage = planned.isEmpty ? 0.0 : visited / planned.length;
 
         return Scaffold(
           appBar: AppBar(
@@ -47,7 +48,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 const Text('Planeación del día'),
                 Text(
-                  formatDate(DateTime.now()),
+                  formatDate(today),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -70,7 +71,7 @@ class HomeScreen extends StatelessWidget {
                       LinearProgressIndicator(value: coverage),
                       const SizedBox(height: 8),
                       Text(
-                        '$visited de ${route.length} farmacias visitadas '
+                        '$visited de ${planned.length} farmacias visitadas '
                         '(meta ${(_coverageGoal * 100).round()}%)',
                       ),
                     ],
@@ -78,26 +79,26 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              if (route.isEmpty)
+              if (planned.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'No hay farmacias en la ruta. Crea una en la pestaña Farmacias.',
+                    'No hay plan para hoy. Créalo en la pestaña Plan.',
                     textAlign: TextAlign.center,
                   ),
                 ),
-              for (final pharmacy in route)
+              for (var i = 0; i < planned.length; i++)
                 Card(
                   child: ListTile(
-                    leading: CircleAvatar(child: Text('${pharmacy.priority}')),
-                    title: Text(pharmacy.name),
+                    leading: CircleAvatar(child: Text('${i + 1}')),
+                    title: Text(planned[i].name),
                     subtitle: Text(
-                      '${pharmacy.chain} · ${pharmacy.lastPurchaseLabel}',
+                      '${planned[i].chain} · ${planned[i].lastPurchaseLabel}',
                     ),
-                    trailing: repository.wasVisitedToday(pharmacy)
+                    trailing: repository.wasVisitedToday(planned[i])
                         ? const Icon(Icons.check_circle, color: Colors.green)
                         : const Icon(Icons.chevron_right),
-                    onTap: () => _openPharmacy(context, pharmacy),
+                    onTap: () => _openPharmacy(context, planned[i]),
                   ),
                 ),
             ],

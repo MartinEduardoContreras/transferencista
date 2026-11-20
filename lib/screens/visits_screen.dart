@@ -5,7 +5,7 @@ import '../models/visit.dart';
 import '../utils/format.dart';
 import 'visit_detail_screen.dart';
 
-/// Historial de visitas con indicadores generales.
+/// Historial de visitas con indicadores, agrupado por fecha (se puede expandir o colapsar).
 class VisitsScreen extends StatelessWidget {
   const VisitsScreen({super.key, required this.repository});
 
@@ -32,6 +32,13 @@ class VisitsScreen extends StatelessWidget {
         final totalChecks =
             visits.fold<int>(0, (sum, v) => sum + v.checks.length);
         final avgChecks = visits.isEmpty ? 0.0 : totalChecks / visits.length;
+
+        // Agrupa por día; visits ya viene de la más reciente a la más antigua.
+        final byDay = <DateTime, List<Visit>>{};
+        for (final visit in visits) {
+          byDay.putIfAbsent(startOfDay(visit.arrival), () => []).add(visit);
+        }
+        final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
         return Scaffold(
           appBar: AppBar(title: const Text('Visitas')),
@@ -80,21 +87,35 @@ class VisitsScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              for (final visit in visits)
+              for (final day in days)
                 Card(
-                  child: ListTile(
-                    title: Text(
-                      repository.pharmacyById(visit.pharmacyId)?.name ??
-                          'Farmacia',
-                    ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    key: ValueKey(day),
+                    initiallyExpanded: true,
+                    leading: const Icon(Icons.calendar_today),
+                    title: Text(formatDate(day)),
                     subtitle: Text(
-                      '${formatDate(visit.arrival)} · '
-                      '${formatTime(visit.arrival)} – '
-                      '${formatTime(visit.departure)} · '
-                      '${visit.duration.inMinutes} min',
+                      '${byDay[day]!.length} '
+                      '${byDay[day]!.length == 1 ? 'visita' : 'visitas'}',
                     ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openVisit(context, visit),
+                    children: [
+                      for (final visit in (byDay[day]!
+                        ..sort((a, b) => a.arrival.compareTo(b.arrival))))
+                        ListTile(
+                          title: Text(
+                            repository.pharmacyById(visit.pharmacyId)?.name ??
+                                'Farmacia',
+                          ),
+                          subtitle: Text(
+                            '${formatTime(visit.arrival)} – '
+                            '${formatTime(visit.departure)} · '
+                            '${visit.duration.inMinutes} min',
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _openVisit(context, visit),
+                        ),
+                    ],
                   ),
                 ),
             ],

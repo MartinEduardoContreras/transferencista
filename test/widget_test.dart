@@ -54,6 +54,47 @@ void main() {
     expect(repo.route.any(repo.wasVisitedToday), isFalse);
   });
 
+  test('el plan del día conserva el orden de visita y se puede cambiar', () {
+    final repo = AppRepository.seeded();
+    final today = DateTime.now();
+    expect(repo.planIds(today), ['ph-001', 'ph-002', 'ph-003', 'ph-004']);
+
+    repo.setPlan(today, ['ph-003', 'ph-001']);
+    expect(repo.planFor(today).map((p) => p.id), ['ph-003', 'ph-001']);
+
+    final tomorrow = today.add(const Duration(days: 1));
+    expect(repo.planFor(tomorrow), isEmpty);
+  });
+
+  testWidgets('antes del check-in solo se ofrece registrar la llegada',
+      (tester) async {
+    final repo = AppRepository.seeded();
+    await tester.pumpWidget(MaterialApp(
+      home: VisitScreen(
+        repository: repo,
+        pharmacy: repo.route.first,
+        locationService: const FakeLocationService(
+          LocationResult.success(_point),
+        ),
+      ),
+    ));
+
+    expect(find.text('Registrar llegada'), findsOneWidget);
+    expect(find.text('Validación en el punto'), findsNothing);
+    expect(find.text('Finalizar visita'), findsNothing);
+
+    await tester.tap(find.text('Registrar llegada'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Validación en el punto'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('Finalizar visita'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    expect(find.text('Finalizar visita'), findsOneWidget);
+  });
+
   test('addPharmacy agrega la farmacia a la ruta y notifica', () {
     final repo = AppRepository.seeded();
     var notified = 0;
