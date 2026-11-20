@@ -6,8 +6,10 @@ class Pharmacy {
     required this.chain,
     required this.zone,
     required this.priority,
-    required this.daysSinceLastPurchase,
-    required this.averageTicket,
+    this.address = '',
+    this.manager = '',
+    this.daysSinceLastPurchase,
+    this.averageTicket = 0,
     this.topProduct,
     this.newProduct,
     this.recentProducts = const [],
@@ -20,10 +22,16 @@ class Pharmacy {
   /// Cadena o tipo: "Drogas La Rebaja", "Independiente", etc.
   final String chain;
   final String zone;
+  final String address;
+
+  /// Responsable de la farmacia (quien firma la visita).
+  final String manager;
 
   /// 1 = mayor prioridad. Se usa para ordenar la ruta del día.
   final int priority;
-  final int daysSinceLastPurchase;
+
+  /// Null cuando la farmacia aún no tiene compras registradas.
+  final int? daysSinceLastPurchase;
   final double averageTicket;
   final String? topProduct;
   final String? newProduct;
@@ -32,5 +40,7 @@ class Pharmacy {
   /// Inventario estimado por producto antes de la visita (unidades).
   final Map<String, int> estimatedStock;
 
-  String get lastPurchaseLabel => 'Hace $daysSinceLastPurchase días';
+  String get lastPurchaseLabel => daysSinceLastPurchase == null
+      ? 'Sin compras registradas'
+      : 'Hace $daysSinceLastPurchase días';
 }

@@ -3,7 +3,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:transferencista/app.dart';
 import 'package:transferencista/data/app_repository.dart';
 import 'package:transferencista/models/geo_point.dart';
+import 'package:transferencista/models/pharmacy.dart';
 import 'package:transferencista/models/visit.dart';
+import 'package:transferencista/screens/new_pharmacy_screen.dart';
 import 'package:transferencista/screens/visit_screen.dart';
 import 'package:transferencista/services/location_service.dart';
 import 'package:transferencista/utils/format.dart';
@@ -46,7 +48,32 @@ void main() {
     expect(formatCop(950), '\$950');
   });
 
-  testWidgets('la app muestra la ruta del día', (tester) async {
+  test('las visitas de ejemplo no marcan la ruta de hoy', () {
+    final repo = AppRepository.seeded();
+    expect(repo.visits, isNotEmpty);
+    expect(repo.route.any(repo.wasVisitedToday), isFalse);
+  });
+
+  test('addPharmacy agrega la farmacia a la ruta y notifica', () {
+    final repo = AppRepository.seeded();
+    var notified = 0;
+    repo.addListener(() => notified++);
+    final before = repo.route.length;
+
+    repo.addPharmacy(const Pharmacy(
+      id: 'ph-test',
+      name: 'Farmacia Nueva',
+      chain: 'Otra',
+      zone: 'Zona Sur',
+      priority: 2,
+    ));
+
+    expect(repo.route.length, before + 1);
+    expect(repo.pharmacyById('ph-test')?.name, 'Farmacia Nueva');
+    expect(notified, 1);
+  });
+
+  testWidgets('la app muestra la planeación del día', (tester) async {
     await tester.pumpWidget(
       TransferencistaApp(
         repository: AppRepository.seeded(),
@@ -55,8 +82,50 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Ruta del día'), findsOneWidget);
+    expect(find.text('Planeación del día'), findsOneWidget);
     expect(find.text('Farmacia San José'), findsOneWidget);
+  });
+
+  testWidgets('el formulario de farmacia valida los campos obligatorios',
+      (tester) async {
+    final repo = AppRepository.seeded();
+    final before = repo.pharmacies.length;
+    await tester.pumpWidget(MaterialApp(
+      home: NewPharmacyScreen(repository: repo),
+    ));
+
+    await tester.dragUntilVisible(
+      find.text('Guardar farmacia'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    await tester.tap(find.text('Guardar farmacia'));
+    await tester.pumpAndSettle();
+
+    // Volver arriba para ver los mensajes de error de los primeros campos.
+    await tester.drag(find.byType(ListView), const Offset(0, 1000));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escribe el nombre de la farmacia'), findsOneWidget);
+    expect(find.text('Escribe la zona'), findsOneWidget);
+    expect(repo.pharmacies.length, before);
+  });
+
+  testWidgets('la pestaña Visitas muestra el historial de ejemplo',
+      (tester) async {
+    await tester.pumpWidget(
+      TransferencistaApp(
+        repository: AppRepository.seeded(),
+        locationService: const FakeLocationService(
+          LocationResult.failure(LocationFailure.unavailable),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Visitas'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Farmacia San José'), findsOneWidget);
+    expect(find.text('Duración promedio'), findsOneWidget);
   });
 
   testWidgets('check-in con GPS muestra la ubicación registrada',

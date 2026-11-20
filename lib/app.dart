@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'data/app_repository.dart';
+import 'screens/app_shell.dart';
 import 'services/location_service.dart';
-import 'screens/home_screen.dart';
 
 class TransferencistaApp extends StatelessWidget {
   const TransferencistaApp({
@@ -20,7 +20,7 @@ class TransferencistaApp extends StatelessWidget {
       title: 'Transferencista',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
-      home: HomeScreen(repository: repository, locationService: locationService),
+      home: AppShell(repository: repository, locationService: locationService),
     );
   }
 }

@@ -14,3 +14,10 @@ String formatTime(DateTime time) {
   final mm = time.minute.toString().padLeft(2, '0');
   return '$hh:$mm';
 }
+
+/// Fecha en formato día/mes/año: 19/11/2026
+String formatDate(DateTime date) {
+  final dd = date.day.toString().padLeft(2, '0');
+  final mm = date.month.toString().padLeft(2, '0');
+  return '$dd/$mm/${date.year}';
+}

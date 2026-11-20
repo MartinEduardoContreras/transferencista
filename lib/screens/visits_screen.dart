@@ -1,0 +1,131 @@
+import 'package:material_ui/material_ui.dart';
+
+import '../data/app_repository.dart';
+import '../models/visit.dart';
+import '../utils/format.dart';
+import 'visit_detail_screen.dart';
+
+/// Historial de visitas con indicadores generales.
+class VisitsScreen extends StatelessWidget {
+  const VisitsScreen({super.key, required this.repository});
+
+  final AppRepository repository;
+
+  void _openVisit(BuildContext context, Visit visit) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VisitDetailScreen(repository: repository, visit: visit),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: repository,
+      builder: (context, _) {
+        final visits = repository.visits;
+        final pharmaciesVisited = visits.map((v) => v.pharmacyId).toSet().length;
+        final totalMinutes =
+            visits.fold<int>(0, (sum, v) => sum + v.duration.inMinutes);
+        final avgMinutes = visits.isEmpty ? 0 : totalMinutes ~/ visits.length;
+        final totalChecks =
+            visits.fold<int>(0, (sum, v) => sum + v.checks.length);
+        final avgChecks = visits.isEmpty ? 0.0 : totalChecks / visits.length;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Visitas')),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _KpiCard(label: 'Visitas', value: '${visits.length}'),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _KpiCard(
+                      label: 'Farmacias visitadas',
+                      value: '$pharmaciesVisited',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _KpiCard(
+                      label: 'Duración promedio',
+                      value: '$avgMinutes min',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _KpiCard(
+                      label: 'Checks promedio',
+                      value: '${avgChecks.toStringAsFixed(1)} de '
+                          '${PointOfSaleCheck.values.length}',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (visits.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Aún no hay visitas registradas. Inicia una desde Hoy.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              for (final visit in visits)
+                Card(
+                  child: ListTile(
+                    title: Text(
+                      repository.pharmacyById(visit.pharmacyId)?.name ??
+                          'Farmacia',
+                    ),
+                    subtitle: Text(
+                      '${formatDate(visit.arrival)} · '
+                      '${formatTime(visit.arrival)} – '
+                      '${formatTime(visit.departure)} · '
+                      '${visit.duration.inMinutes} min',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _openVisit(context, visit),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _KpiCard extends StatelessWidget {
+  const _KpiCard({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.bodySmall),
+            const SizedBox(height: 4),
+            Text(value, style: theme.textTheme.titleLarge),
+          ],
+        ),
+      ),
+    );
+  }
+}

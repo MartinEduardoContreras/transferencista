@@ -1,0 +1,212 @@
+import 'package:material_ui/material_ui.dart';
+
+import '../data/app_repository.dart';
+import '../models/pharmacy.dart';
+
+/// Cadenas o tipos de farmacia que aparecen en el proceso del documento.
+const pharmacyChains = <String>[
+  'Independiente',
+  'Drogas La Rebaja',
+  'Cruz Verde',
+  'Farmatodo',
+  'Cafam',
+  'Colsubsidio',
+  'Otra',
+];
+
+/// Formulario para crear una farmacia nueva. Al guardar devuelve la farmacia creada.
+class NewPharmacyScreen extends StatefulWidget {
+  const NewPharmacyScreen({super.key, required this.repository});
+
+  final AppRepository repository;
+
+  @override
+  State<NewPharmacyScreen> createState() => _NewPharmacyScreenState();
+}
+
+class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _zone = TextEditingController();
+  final _address = TextEditingController();
+  final _manager = TextEditingController();
+  final _ticket = TextEditingController();
+
+  String? _chain;
+  int _priority = 3;
+  String? _topProduct;
+  String? _newProduct;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _zone.dispose();
+    _address.dispose();
+    _manager.dispose();
+    _ticket.dispose();
+    super.dispose();
+  }
+
+  String? _required(String? value, String message) =>
+      (value == null || value.trim().isEmpty) ? message : null;
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final ticketText = _ticket.text.trim().replaceAll('.', '');
+    final pharmacy = Pharmacy(
+      id: widget.repository.newPharmacyId(),
+      name: _name.text.trim(),
+      chain: _chain!,
+      zone: _zone.text.trim(),
+      address: _address.text.trim(),
+      manager: _manager.text.trim(),
+      priority: _priority,
+      averageTicket: double.tryParse(ticketText) ?? 0,
+      topProduct: _topProduct,
+      newProduct: _newProduct,
+    );
+    widget.repository.addPharmacy(pharmacy);
+    Navigator.of(context).pop(pharmacy);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final portfolio = widget.repository.portfolio;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Nueva farmacia')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextFormField(
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Nombre de la farmacia *',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  _required(v, 'Escribe el nombre de la farmacia'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _chain,
+              decoration: const InputDecoration(
+                labelText: 'Cadena o tipo *',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                for (final chain in pharmacyChains)
+                  DropdownMenuItem(value: chain, child: Text(chain)),
+              ],
+              onChanged: (value) => setState(() => _chain = value),
+              validator: (v) => v == null ? 'Selecciona la cadena' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _zone,
+              decoration: const InputDecoration(
+                labelText: 'Zona *',
+                hintText: 'Ej. Zona Norte Bogotá',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => _required(v, 'Escribe la zona'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _address,
+              decoration: const InputDecoration(
+                labelText: 'Dirección',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _manager,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Responsable de la farmacia',
+                helperText: 'Quien firma la visita',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              initialValue: _priority,
+              decoration: const InputDecoration(
+                labelText: 'Prioridad en la ruta *',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 1, child: Text('1 · más alta')),
+                DropdownMenuItem(value: 2, child: Text('2')),
+                DropdownMenuItem(value: 3, child: Text('3 · media')),
+                DropdownMenuItem(value: 4, child: Text('4')),
+                DropdownMenuItem(value: 5, child: Text('5 · más baja')),
+              ],
+              onChanged: (value) =>
+                  setState(() => _priority = value ?? _priority),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _ticket,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Ticket promedio (COP)',
+                hintText: 'Ej. 185000',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) {
+                final text = (v ?? '').trim().replaceAll('.', '');
+                if (text.isEmpty) return null;
+                return double.tryParse(text) == null ? 'Solo números' : null;
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: _topProduct,
+              decoration: const InputDecoration(
+                labelText: 'Producto estrella',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Ninguno')),
+                for (final product in portfolio)
+                  DropdownMenuItem(value: product, child: Text(product)),
+              ],
+              onChanged: (value) => setState(() => _topProduct = value),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: _newProduct,
+              decoration: const InputDecoration(
+                labelText: 'Producto nuevo',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Ninguno')),
+                for (final product in portfolio)
+                  DropdownMenuItem(value: product, child: Text(product)),
+              ],
+              onChanged: (value) => setState(() => _newProduct = value),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'El inventario estimado se registra en cada visita.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: const Text('Guardar farmacia'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
