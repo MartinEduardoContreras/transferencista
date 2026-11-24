@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:transferencista/app.dart';
 import 'package:transferencista/data/app_repository.dart';
+import 'package:transferencista/data/local_store.dart';
 import 'package:transferencista/models/geo_point.dart';
 import 'package:transferencista/models/pharmacy.dart';
 import 'package:transferencista/models/visit.dart';
@@ -137,6 +138,28 @@ void main() {
     // Vuelve al radio: no registra más puntos.
     expect(tracker.onPosition(near, t0.add(const Duration(minutes: 20))), TrackEvent.none);
     expect(tracker.points, hasLength(2));
+  });
+
+  test('open siembra la primera vez y después lee lo ya guardado', () async {
+    final store = MemoryStore();
+    final first = await AppRepository.open(store, now: DateTime(2026, 11, 20, 9));
+    expect(first.pharmacies.length, 4);
+    expect(first.visits.length, 3);
+
+    await first.addPharmacy(const Pharmacy(
+      id: 'ph-persistida',
+      name: 'Farmacia Persistida',
+      chain: 'Otra',
+      zone: 'Zona Sur',
+      priority: 1,
+    ));
+    await first.setPlan(DateTime(2026, 11, 21), ['ph-persistida']);
+
+    final second = await AppRepository.open(store);
+    expect(second.pharmacies.length, 5);
+    expect(second.pharmacyById('ph-persistida')?.name, 'Farmacia Persistida');
+    expect(second.visits.length, 3);
+    expect(second.planIds(DateTime(2026, 11, 21)), ['ph-persistida']);
   });
 
   test('addPharmacy agrega la farmacia a la ruta y notifica', () {

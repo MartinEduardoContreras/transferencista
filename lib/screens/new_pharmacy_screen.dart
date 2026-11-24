@@ -50,7 +50,7 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   String? _required(String? value, String message) =>
       (value == null || value.trim().isEmpty) ? message : null;
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final ticketText = _ticket.text.trim().replaceAll('.', '');
@@ -66,7 +66,8 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
       topProduct: _topProduct,
       newProduct: _newProduct,
     );
-    widget.repository.addPharmacy(pharmacy);
+    await widget.repository.addPharmacy(pharmacy);
+    if (!mounted) return;
     Navigator.of(context).pop(pharmacy);
   }
 
@@ -200,7 +201,7 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _save,
+              onPressed: () => _save(),
               icon: const Icon(Icons.save),
               label: const Text('Guardar farmacia'),
             ),

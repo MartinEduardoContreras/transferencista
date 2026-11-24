@@ -2,26 +2,65 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/pharmacy.dart';
 import '../models/visit.dart';
+import 'local_store.dart';
 import 'seed_data.dart';
 
 /// Inicio del día (00:00 local) para usarlo como clave de fecha.
 DateTime startOfDay(DateTime date) => DateTime(date.year, date.month, date.day);
 
-/// Repositorio en memoria. Notifica a la UI cuando cambian farmacias, visitas o planes.
-/// En fases posteriores se reemplazará por base de datos local (offline) y sincronización.
+/// Repositorio de la app. Mantiene los datos en memoria para la interfaz y los
+/// guarda en el [LocalStore] (SQLite en el teléfono) en cada cambio.
 class AppRepository extends ChangeNotifier {
   AppRepository({
     required List<Pharmacy> pharmacies,
     required this.portfolio,
     List<Visit> visits = const [],
     Map<DateTime, List<String>> plans = const {},
+    LocalStore? store,
   })  : _pharmacies = List.of(pharmacies),
         _visits = List.of(visits),
         _plans = {
           for (final entry in plans.entries)
             startOfDay(entry.key): List.of(entry.value),
-        };
+        },
+        _store = store ?? MemoryStore();
 
+  /// Abre el repositorio desde el almacenamiento local. La primera vez carga los
+  /// datos de ejemplo y los guarda; después solo lee lo que ya existe.
+  static Future<AppRepository> open(LocalStore store, {DateTime? now}) async {
+    final snapshot = await store.loadSnapshot();
+    if (snapshot.seeded) {
+      return AppRepository(
+        pharmacies: snapshot.pharmacies,
+        portfolio: seedPortfolio,
+        visits: snapshot.visits,
+        plans: snapshot.plans,
+        store: store,
+      );
+    }
+
+    final clock = now ?? DateTime.now();
+    final repo = AppRepository(
+      pharmacies: seedPharmacies,
+      portfolio: seedPortfolio,
+      visits: buildSeedVisits(clock),
+      plans: buildSeedPlans(clock),
+      store: store,
+    );
+    for (final pharmacy in repo._pharmacies) {
+      await store.savePharmacy(pharmacy);
+    }
+    for (final entry in repo._plans.entries) {
+      await store.savePlan(entry.key, entry.value);
+    }
+    for (final visit in repo._visits) {
+      await store.saveVisit(visit);
+    }
+    await store.markSeeded();
+    return repo;
+  }
+
+  /// Repositorio solo en memoria, con datos de ejemplo. Usado en pruebas.
   factory AppRepository.seeded({DateTime? now}) {
     final clock = now ?? DateTime.now();
     return AppRepository(
@@ -34,6 +73,7 @@ class AppRepository extends ChangeNotifier {
 
   final List<Pharmacy> _pharmacies;
   final List<Visit> _visits;
+  final LocalStore _store;
 
   /// Plan de visitas por día: lista de ids de farmacia en orden de visita.
   final Map<DateTime, List<String>> _plans;
@@ -76,7 +116,7 @@ class AppRepository extends ChangeNotifier {
   }
 
   /// Reemplaza el plan de [day] con los ids dados, en ese orden.
-  void setPlan(DateTime day, List<String> pharmacyIds) {
+  Future<void> setPlan(DateTime day, List<String> pharmacyIds) async {
     final key = startOfDay(day);
     if (pharmacyIds.isEmpty) {
       _plans.remove(key);
@@ -84,6 +124,7 @@ class AppRepository extends ChangeNotifier {
       _plans[key] = List.of(pharmacyIds);
     }
     notifyListeners();
+    await _store.savePlan(key, pharmacyIds);
   }
 
   Pharmacy? pharmacyById(String id) {
@@ -106,14 +147,16 @@ class AppRepository extends ChangeNotifier {
 
   String newPharmacyId() => 'ph-${DateTime.now().microsecondsSinceEpoch}';
 
-  void addPharmacy(Pharmacy pharmacy) {
+  Future<void> addPharmacy(Pharmacy pharmacy) async {
     _pharmacies.add(pharmacy);
     notifyListeners();
+    await _store.savePharmacy(pharmacy);
   }
 
-  void saveVisit(Visit visit) {
+  Future<void> saveVisit(Visit visit) async {
     _visits.add(visit);
     notifyListeners();
+    await _store.saveVisit(visit);
   }
 
   static bool _isSameDay(DateTime a, DateTime b) =>

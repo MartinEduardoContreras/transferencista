@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../data/app_repository.dart';
 import '../models/geo_point.dart';
@@ -144,11 +146,24 @@ class _VisitScreenState extends State<VisitScreen> {
       imageQuality: 70,
     );
     if (shot == null || !mounted) return;
+
+    // Copia la foto a la carpeta de documentos de la app para que no se borre
+    // con la caché del sistema.
+    final docs = await getApplicationDocumentsDirectory();
+    final folder = Directory(p.join(docs.path, 'fotos_visitas'));
+    await folder.create(recursive: true);
+    final savedPath = p.join(
+      folder.path,
+      '${DateTime.now().microsecondsSinceEpoch}_${kind.name}.jpg',
+    );
+    await File(shot.path).copy(savedPath);
+    if (!mounted) return;
+
     setState(() {
-      _photos.removeWhere((p) => p.kind == kind);
+      _photos.removeWhere((photo) => photo.kind == kind);
       _photos.add(VisitPhoto(
         kind: kind,
-        path: shot.path,
+        path: savedPath,
         takenAt: DateTime.now(),
       ));
     });
@@ -187,7 +202,8 @@ class _VisitScreenState extends State<VisitScreen> {
       trackingConsent: _trackingConsent,
       track: _tracker?.points ?? const <TrackPoint>[],
     );
-    widget.repository.saveVisit(visit);
+    await widget.repository.saveVisit(visit);
+    if (!mounted) return;
     Navigator.of(context).pop(true);
   }
 
