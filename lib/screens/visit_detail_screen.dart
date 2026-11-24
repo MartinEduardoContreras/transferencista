@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/app_repository.dart';
+import '../models/product_record.dart';
 import '../models/visit.dart';
 import '../utils/format.dart';
 import '../widgets/info_section.dart';
@@ -17,6 +18,8 @@ class VisitDetailScreen extends StatelessWidget {
 
   final AppRepository repository;
   final Visit visit;
+
+  static String _yesNo(bool value) => value ? 'Sí' : 'No';
 
   @override
   Widget build(BuildContext context) {
@@ -45,34 +48,22 @@ class VisitDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          InfoSection(
-            title: 'Validación en el punto',
-            rows: [
-              for (final check in PointOfSaleCheck.values)
-                InfoRow(check.label, visit.checks.contains(check) ? 'Sí' : 'No'),
-            ],
-          ),
-          const SizedBox(height: 12),
-          InfoSection(
-            title: 'Inventario encontrado',
-            rows: visit.inventory.isEmpty
-                ? [const InfoRow('Sin datos', '—')]
-                : [
-                    for (final entry in visit.inventory.entries)
-                      InfoRow(entry.key, '${entry.value} unidades'),
-                  ],
-          ),
-          const SizedBox(height: 12),
+          if (visit.products.isEmpty)
+            const InfoSection(
+              title: 'Productos',
+              rows: [InfoRow('Sin productos', '—')],
+            ),
+          for (final record in visit.products) ...[
+            _ProductSection(record: record),
+            const SizedBox(height: 12),
+          ],
           InfoSection(
             title: 'Fotos',
             rows: visit.photos.isEmpty
                 ? [const InfoRow('Sin fotos', '—')]
                 : [
                     for (final photo in visit.photos)
-                      InfoRow(
-                        photo.kind.label,
-                        formatTime(photo.takenAt),
-                      ),
+                      InfoRow(photo.kind.label, formatTime(photo.takenAt)),
                   ],
           ),
           if (visit.photos.isNotEmpty) ...[
@@ -123,6 +114,28 @@ class VisitDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProductSection extends StatelessWidget {
+  const _ProductSection({required this.record});
+
+  final ProductRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    return InfoSection(
+      title: record.product,
+      rows: [
+        InfoRow('Exhibido', VisitDetailScreen._yesNo(record.displayed)),
+        InfoRow('Precio visible', VisitDetailScreen._yesNo(record.priceVisible)),
+        InfoRow('Producto visible', VisitDetailScreen._yesNo(record.productVisible)),
+        InfoRow('Inventario', '${record.units} unidades'),
+        InfoRow('Hay competencia', VisitDetailScreen._yesNo(record.competitionPresent)),
+        InfoRow('Material POP', VisitDetailScreen._yesNo(record.popPresent)),
+        InfoRow('Hay agotados', VisitDetailScreen._yesNo(record.outOfStock)),
+      ],
     );
   }
 }

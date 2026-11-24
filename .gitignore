@@ -49,3 +49,6 @@ app.*.map.json
 
 # Build de Gradle generado
 android/build/
+
+# Plataforma web no usada en este proyecto
+/web/

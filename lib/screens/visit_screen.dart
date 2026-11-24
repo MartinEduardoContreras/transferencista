@@ -9,18 +9,20 @@ import 'package:path_provider/path_provider.dart';
 import '../data/app_repository.dart';
 import '../models/geo_point.dart';
 import '../models/pharmacy.dart';
+import '../models/product_record.dart';
 import '../models/track_point.dart';
 import '../models/visit.dart';
 import '../models/visit_photo.dart';
 import '../services/location_service.dart';
 import '../services/movement_tracker.dart';
 import '../utils/format.dart';
+import 'product_check_screen.dart';
 
 /// Radio en metros a partir del cual se avisa y se registra el trayecto.
 const trackingRadiusMeters = 500.0;
 
 /// Registro de la visita. Primero solo se ofrece el check-in GPS. Después aparecen
-/// las fotos, la validación del punto, el inventario, la competencia y las observaciones.
+/// las fotos, los productos revisados, la competencia y las observaciones.
 /// Al iniciar, la persona acepta el registro de trayecto (con aviso visible).
 /// El check-out GPS se pide al finalizar.
 class VisitScreen extends StatefulWidget {
@@ -50,20 +52,15 @@ class _VisitScreenState extends State<VisitScreen> {
   bool _outsideRadius = false;
 
   final List<VisitPhoto> _photos = [];
-  final Set<PointOfSaleCheck> _checks = {};
-  late final Map<String, TextEditingController> _inventory = {
-    for (final product in widget.repository.portfolio)
-      product: TextEditingController(),
-  };
+
+  /// Registro por producto, indexado por nombre de producto.
+  final Map<String, ProductRecord> _records = {};
   final _competitors = TextEditingController();
   final _notes = TextEditingController();
 
   @override
   void dispose() {
     _trackingSub?.cancel();
-    for (final controller in _inventory.values) {
-      controller.dispose();
-    }
     _competitors.dispose();
     _notes.dispose();
     super.dispose();
@@ -169,6 +166,20 @@ class _VisitScreenState extends State<VisitScreen> {
     });
   }
 
+  Future<void> _openProduct(String product) async {
+    final result = await Navigator.of(context).push<ProductRecord>(
+      MaterialPageRoute(
+        builder: (_) => ProductCheckScreen(
+          product: product,
+          initial: _records[product],
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _records[product] = result);
+    }
+  }
+
   Future<void> _finish() async {
     final result = await _readLocation();
     if (!mounted) return;
@@ -181,19 +192,17 @@ class _VisitScreenState extends State<VisitScreen> {
     _trackingSub?.cancel();
     _trackingSub = null;
 
-    final inventory = <String, int>{};
-    _inventory.forEach((product, controller) {
-      final units = int.tryParse(controller.text.trim());
-      if (units != null) inventory[product] = units;
-    });
+    final products = [
+      for (final product in widget.repository.portfolio)
+        if (_records[product] != null) _records[product]!,
+    ];
 
     final visit = Visit(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       pharmacyId: widget.pharmacy.id,
       arrival: _arrival!,
       departure: DateTime.now(),
-      checks: Set.of(_checks),
-      inventory: inventory,
+      products: products,
       competitors: _competitors.text.trim(),
       notes: _notes.text.trim(),
       checkIn: _checkIn,
@@ -205,16 +214,6 @@ class _VisitScreenState extends State<VisitScreen> {
     await widget.repository.saveVisit(visit);
     if (!mounted) return;
     Navigator.of(context).pop(true);
-  }
-
-  void _toggle(PointOfSaleCheck check, bool? value) {
-    setState(() {
-      if (value == true) {
-        _checks.add(check);
-      } else {
-        _checks.remove(check);
-      }
-    });
   }
 
   VisitPhoto? _photoOf(VisitPhotoKind kind) {
@@ -308,30 +307,33 @@ class _VisitScreenState extends State<VisitScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            Text('Validación en el punto', style: theme.textTheme.titleMedium),
-            for (final check in PointOfSaleCheck.values)
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(check.label),
-                value: _checks.contains(check),
-                onChanged: (value) => _toggle(check, value),
-              ),
-            const SizedBox(height: 16),
-            Text('Inventario (unidades)', style: theme.textTheme.titleMedium),
+            Text('Productos en esta visita', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Toca un producto para registrar lo que encontraste.',
+              style: theme.textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
-            for (final entry in _inventory.entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextField(
-                  controller: entry.value,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: entry.key,
-                    border: const OutlineInputBorder(),
+            for (final product in widget.repository.portfolio)
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    _records[product] != null
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: _records[product] != null ? Colors.green : null,
                   ),
+                  title: Text(product),
+                  subtitle: Text(
+                    _records[product] != null
+                        ? '${_records[product]!.units} unidades registradas'
+                        : 'Sin registrar',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openProduct(product),
                 ),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             TextField(
               controller: _competitors,
               maxLines: 2,

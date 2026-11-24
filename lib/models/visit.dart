@@ -1,21 +1,7 @@
 import 'geo_point.dart';
+import 'product_record.dart';
 import 'track_point.dart';
 import 'visit_photo.dart';
-
-/// Ítems del checklist de validación en el punto de venta (paso 3 del proceso).
-enum PointOfSaleCheck {
-  productDisplayed('Producto exhibido'),
-  priceVisible('Precio visible'),
-  productVisible('Producto visible'),
-  hasStock('Tiene inventario'),
-  competitionPresent('Hay competencia'),
-  popMaterialPresent('Material POP presente'),
-  hasOutOfStock('Hay agotados');
-
-  const PointOfSaleCheck(this.label);
-
-  final String label;
-}
 
 /// Registro de una visita a una farmacia.
 class Visit {
@@ -24,8 +10,7 @@ class Visit {
     required this.pharmacyId,
     required this.arrival,
     required this.departure,
-    required this.checks,
-    required this.inventory,
+    this.products = const [],
     this.competitors = '',
     this.notes = '',
     this.checkIn,
@@ -46,11 +31,8 @@ class Visit {
   final GeoPoint? checkIn;
   final GeoPoint? checkOut;
 
-  /// Checks marcados como cumplidos durante la visita.
-  final Set<PointOfSaleCheck> checks;
-
-  /// Unidades encontradas por producto del portafolio.
-  final Map<String, int> inventory;
+  /// Productos revisados en esta visita, con lo que se encontró de cada uno.
+  final List<ProductRecord> products;
   final String competitors;
   final String notes;
 

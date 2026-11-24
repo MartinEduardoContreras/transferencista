@@ -1,5 +1,6 @@
 import '../models/geo_point.dart';
 import '../models/pharmacy.dart';
+import '../models/product_record.dart';
 import '../models/visit.dart';
 
 /// Datos de ejemplo tomados del documento de proceso. Son ficticios y sirven
@@ -21,10 +22,6 @@ const seedPharmacies = <Pharmacy>[
     priority: 1,
     daysSinceLastPurchase: 43,
     averageTicket: 185000,
-    topProduct: 'Sertralina',
-    newProduct: 'K-Llosil',
-    recentProducts: ['Sertralina', 'Vitaminas'],
-    estimatedStock: {'Sertralina': 2, 'Vitaminas': 6},
   ),
   Pharmacy(
     id: 'ph-002',
@@ -34,10 +31,6 @@ const seedPharmacies = <Pharmacy>[
     priority: 2,
     daysSinceLastPurchase: 12,
     averageTicket: 420000,
-    topProduct: 'Melatonina',
-    newProduct: 'Omega 3',
-    recentProducts: ['Melatonina', 'Omega 3'],
-    estimatedStock: {'Melatonina': 10},
   ),
   Pharmacy(
     id: 'ph-003',
@@ -47,9 +40,6 @@ const seedPharmacies = <Pharmacy>[
     priority: 3,
     daysSinceLastPurchase: 5,
     averageTicket: 360000,
-    topProduct: 'Vitaminas',
-    recentProducts: ['Vitaminas'],
-    estimatedStock: {'Vitaminas': 14, 'Sertralina': 4},
   ),
   Pharmacy(
     id: 'ph-004',
@@ -59,8 +49,6 @@ const seedPharmacies = <Pharmacy>[
     priority: 4,
     daysSinceLastPurchase: 27,
     averageTicket: 290000,
-    topProduct: 'K-Llosil',
-    recentProducts: ['K-Llosil'],
   ),
 ];
 
@@ -89,12 +77,20 @@ List<Visit> buildSeedVisits(DateTime now) {
       pharmacyId: 'ph-001',
       arrival: at(2, 9, 15),
       departure: at(2, 10, 5),
-      checks: const {
-        PointOfSaleCheck.productDisplayed,
-        PointOfSaleCheck.priceVisible,
-        PointOfSaleCheck.hasStock,
-      },
-      inventory: const {'Sertralina': 2, 'Vitaminas': 6},
+      products: const [
+        ProductRecord(
+          product: 'Sertralina',
+          displayed: true,
+          priceVisible: true,
+          units: 2,
+        ),
+        ProductRecord(
+          product: 'Vitaminas',
+          displayed: true,
+          units: 6,
+          competitionPresent: true,
+        ),
+      ],
       competitors: 'Competencia con promoción 2x1 en vitaminas',
       notes: 'Pidió reposición de Sertralina para la próxima semana.',
       checkIn: gps(4.7110, -74.0721),
@@ -105,11 +101,19 @@ List<Visit> buildSeedVisits(DateTime now) {
       pharmacyId: 'ph-002',
       arrival: at(3, 14, 0),
       departure: at(3, 15, 20),
-      checks: const {
-        PointOfSaleCheck.productDisplayed,
-        PointOfSaleCheck.popMaterialPresent,
-      },
-      inventory: const {'Melatonina': 10, 'Omega 3': 0},
+      products: const [
+        ProductRecord(
+          product: 'Melatonina',
+          displayed: true,
+          units: 10,
+          popPresent: true,
+        ),
+        ProductRecord(
+          product: 'Omega 3',
+          displayed: true,
+          outOfStock: true,
+        ),
+      ],
       competitors: '',
       notes: 'Se dejó material POP en exhibidor de caja.',
       checkIn: gps(4.6990, -74.0580),
@@ -120,12 +124,17 @@ List<Visit> buildSeedVisits(DateTime now) {
       pharmacyId: 'ph-003',
       arrival: at(5, 10, 30),
       departure: at(5, 11, 10),
-      checks: const {
-        PointOfSaleCheck.productVisible,
-        PointOfSaleCheck.hasStock,
-        PointOfSaleCheck.hasOutOfStock,
-      },
-      inventory: const {'Vitaminas': 14, 'Sertralina': 4},
+      products: const [
+        ProductRecord(
+          product: 'Vitaminas',
+          productVisible: true,
+          units: 14,
+        ),
+        ProductRecord(
+          product: 'Sertralina',
+          units: 4,
+        ),
+      ],
       competitors: 'Marca X con exhibidor nuevo',
       notes: '',
       checkIn: gps(4.7040, -74.0320),

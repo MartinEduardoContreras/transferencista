@@ -1,4 +1,7 @@
 /// Farmacia o punto de venta que atiende la transferencista.
+///
+/// Solo guarda lo que identifica a la farmacia. Lo que cambia con cada visita o
+/// compra (productos, historial) se obtiene de las visitas registradas.
 class Pharmacy {
   const Pharmacy({
     required this.id,
@@ -10,10 +13,6 @@ class Pharmacy {
     this.manager = '',
     this.daysSinceLastPurchase,
     this.averageTicket = 0,
-    this.topProduct,
-    this.newProduct,
-    this.recentProducts = const [],
-    this.estimatedStock = const {},
   });
 
   final String id;
@@ -33,12 +32,6 @@ class Pharmacy {
   /// Null cuando la farmacia aún no tiene compras registradas.
   final int? daysSinceLastPurchase;
   final double averageTicket;
-  final String? topProduct;
-  final String? newProduct;
-  final List<String> recentProducts;
-
-  /// Inventario estimado por producto antes de la visita (unidades).
-  final Map<String, int> estimatedStock;
 
   String get lastPurchaseLabel => daysSinceLastPurchase == null
       ? 'Sin compras registradas'

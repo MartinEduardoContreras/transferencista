@@ -34,8 +34,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
 
   String? _chain;
   int _priority = 3;
-  String? _topProduct;
-  String? _newProduct;
 
   @override
   void dispose() {
@@ -63,8 +61,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
       manager: _manager.text.trim(),
       priority: _priority,
       averageTicket: double.tryParse(ticketText) ?? 0,
-      topProduct: _topProduct,
-      newProduct: _newProduct,
     );
     await widget.repository.addPharmacy(pharmacy);
     if (!mounted) return;
@@ -73,8 +69,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final portfolio = widget.repository.portfolio;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Nueva farmacia')),
       body: Form(
@@ -166,37 +160,9 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
                 return double.tryParse(text) == null ? 'Solo números' : null;
               },
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: _topProduct,
-              decoration: const InputDecoration(
-                labelText: 'Producto estrella',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Ninguno')),
-                for (final product in portfolio)
-                  DropdownMenuItem(value: product, child: Text(product)),
-              ],
-              onChanged: (value) => setState(() => _topProduct = value),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: _newProduct,
-              decoration: const InputDecoration(
-                labelText: 'Producto nuevo',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Ninguno')),
-                for (final product in portfolio)
-                  DropdownMenuItem(value: product, child: Text(product)),
-              ],
-              onChanged: (value) => setState(() => _newProduct = value),
-            ),
             const SizedBox(height: 8),
             const Text(
-              'El inventario estimado se registra en cada visita.',
+              'Los productos y el historial de compras se registran en cada visita.',
               style: TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 24),

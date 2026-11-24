@@ -5,6 +5,7 @@ import 'package:transferencista/data/app_repository.dart';
 import 'package:transferencista/data/local_store.dart';
 import 'package:transferencista/models/geo_point.dart';
 import 'package:transferencista/models/pharmacy.dart';
+import 'package:transferencista/models/product_record.dart';
 import 'package:transferencista/models/visit.dart';
 import 'package:transferencista/screens/new_pharmacy_screen.dart';
 import 'package:transferencista/screens/visit_screen.dart';
@@ -35,15 +36,28 @@ void main() {
       pharmacyId: pharmacy.id,
       arrival: now,
       departure: now,
-      checks: {PointOfSaleCheck.productDisplayed},
-      inventory: const {'Sertralina': 3},
+      products: const [
+        ProductRecord(product: 'Sertralina', displayed: true, units: 3),
+      ],
       checkIn: _point,
       checkOut: _point,
     ));
 
     expect(repo.wasVisitedToday(pharmacy), isTrue);
-    expect(repo.lastVisit(pharmacy)?.inventory['Sertralina'], 3);
+    final history = repo.lastProductRecord(pharmacy, 'Sertralina');
+    expect(history?.record.units, 3);
+    expect(history?.record.displayed, isTrue);
     expect(repo.lastVisit(pharmacy)?.checkIn?.accuracyMeters, 12);
+  });
+
+  test('el historial por producto devuelve el último registro', () {
+    final repo = AppRepository.seeded();
+    final pharmacy = repo.pharmacyById('ph-003')!;
+    // ph-003 tiene vitaminas en una visita de hace 5 días (14 unidades).
+    final entry = repo.lastProductRecord(pharmacy, 'Vitaminas');
+    expect(entry?.record.units, 14);
+    expect(entry?.record.productVisible, isTrue);
+    expect(repo.lastProductRecord(pharmacy, 'Melatonina'), isNull);
   });
 
   test('formato de pesos colombianos', () {
@@ -83,7 +97,7 @@ void main() {
     ));
 
     expect(find.text('Registrar llegada'), findsOneWidget);
-    expect(find.text('Validación en el punto'), findsNothing);
+    expect(find.text('Productos en esta visita'), findsNothing);
     expect(find.text('Finalizar visita'), findsNothing);
 
     await tester.tap(find.text('Registrar llegada'));
@@ -92,11 +106,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.dragUntilVisible(
-      find.text('Validación en el punto'),
+      find.text('Productos en esta visita'),
       find.byType(ListView),
       const Offset(0, -200),
     );
-    expect(find.text('Validación en el punto'), findsOneWidget);
+    expect(find.text('Productos en esta visita'), findsOneWidget);
     await tester.dragUntilVisible(
       find.text('Finalizar visita'),
       find.byType(ListView),

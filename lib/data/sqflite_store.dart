@@ -1,18 +1,35 @@
-import 'dart:convert';
-
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../models/geo_point.dart';
 import '../models/pharmacy.dart';
+import '../models/product_record.dart';
 import '../models/track_point.dart';
 import '../models/visit.dart';
 import '../models/visit_photo.dart';
 import 'local_store.dart';
 
 const _dbName = 'transferencista.db';
-const _dbVersion = 1;
+const _dbVersion = 2;
 
+/// Tabla de productos por visita. Se agregó en la versión 2.
+const _visitProductsTable = '''
+  CREATE TABLE visit_products (
+    visit_id TEXT NOT NULL REFERENCES visits(id) ON DELETE CASCADE,
+    product TEXT NOT NULL,
+    displayed INTEGER NOT NULL DEFAULT 0,
+    price_visible INTEGER NOT NULL DEFAULT 0,
+    product_visible INTEGER NOT NULL DEFAULT 0,
+    units INTEGER NOT NULL DEFAULT 0,
+    competition INTEGER NOT NULL DEFAULT 0,
+    pop INTEGER NOT NULL DEFAULT 0,
+    out_of_stock INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (visit_id, product)
+  )''';
+
+/// Esquema completo de la versión actual. Las columnas `checks`, `inventory`,
+/// `top_product`, `new_product` y `recent_products` son de la versión 1 y ya no
+/// se usan; se dejan para no reescribir la tabla.
 const _schema = <String>[
   '''
   CREATE TABLE pharmacies (
@@ -55,6 +72,7 @@ const _schema = <String>[
     check_out_acc REAL,
     tracking_consent INTEGER NOT NULL DEFAULT 0
   )''',
+  _visitProductsTable,
   '''
   CREATE TABLE visit_photos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,6 +116,11 @@ class SqfliteStore implements LocalStore {
           await db.execute(statement);
         }
       },
+      onUpgrade: (db, oldVersion, _) async {
+        if (oldVersion < 2) {
+          await db.execute(_visitProductsTable);
+        }
+      },
     );
     return SqfliteStore._(db);
   }
@@ -113,9 +136,17 @@ class SqfliteStore implements LocalStore {
 
     final pharmacyRows = await _db.query('pharmacies');
     final visitRows = await _db.query('visits');
+    final productRows = await _db.query('visit_products', orderBy: 'visit_id, product');
     final photoRows = await _db.query('visit_photos', orderBy: 'id');
     final trackRows = await _db.query('track_points', orderBy: 'id');
     final planRows = await _db.query('plan_items', orderBy: 'day, position');
+
+    final productsByVisit = <String, List<ProductRecord>>{};
+    for (final row in productRows) {
+      productsByVisit.putIfAbsent(row['visit_id'] as String, () => []).add(
+            _productFromRow(row),
+          );
+    }
 
     final photosByVisit = <String, List<VisitPhoto>>{};
     for (final row in photoRows) {
@@ -161,6 +192,7 @@ class SqfliteStore implements LocalStore {
         for (final row in visitRows)
           _visitFromRow(
             row,
+            products: productsByVisit[row['id'] as String] ?? const [],
             photos: photosByVisit[row['id'] as String] ?? const [],
             track: trackByVisit[row['id'] as String] ?? const [],
           ),
@@ -183,10 +215,6 @@ class SqfliteStore implements LocalStore {
         'priority': pharmacy.priority,
         'days_since_last_purchase': pharmacy.daysSinceLastPurchase,
         'average_ticket': pharmacy.averageTicket,
-        'top_product': pharmacy.topProduct,
-        'new_product': pharmacy.newProduct,
-        'recent_products': jsonEncode(pharmacy.recentProducts),
-        'estimated_stock': jsonEncode(pharmacy.estimatedStock),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -217,8 +245,6 @@ class SqfliteStore implements LocalStore {
           'pharmacy_id': visit.pharmacyId,
           'arrival_ms': visit.arrival.millisecondsSinceEpoch,
           'departure_ms': visit.departure.millisecondsSinceEpoch,
-          'checks': jsonEncode([for (final c in visit.checks) c.name]),
-          'inventory': jsonEncode(visit.inventory),
           'competitors': visit.competitors,
           'notes': visit.notes,
           'check_in_lat': visit.checkIn?.latitude,
@@ -231,6 +257,21 @@ class SqfliteStore implements LocalStore {
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+
+      await txn.delete('visit_products', where: 'visit_id = ?', whereArgs: [visit.id]);
+      for (final record in visit.products) {
+        await txn.insert('visit_products', {
+          'visit_id': visit.id,
+          'product': record.product,
+          'displayed': record.displayed ? 1 : 0,
+          'price_visible': record.priceVisible ? 1 : 0,
+          'product_visible': record.productVisible ? 1 : 0,
+          'units': record.units,
+          'competition': record.competitionPresent ? 1 : 0,
+          'pop': record.popPresent ? 1 : 0,
+          'out_of_stock': record.outOfStock ? 1 : 0,
+        });
+      }
 
       await txn.delete('visit_photos', where: 'visit_id = ?', whereArgs: [visit.id]);
       for (final photo in visit.photos) {
@@ -266,9 +307,6 @@ class SqfliteStore implements LocalStore {
   }
 
   static Pharmacy _pharmacyFromRow(Map<String, Object?> row) {
-    final recent = (jsonDecode(row['recent_products'] as String) as List).cast<String>();
-    final stock = (jsonDecode(row['estimated_stock'] as String) as Map)
-        .map((k, v) => MapEntry(k as String, v as int));
     return Pharmacy(
       id: row['id'] as String,
       name: row['name'] as String,
@@ -279,22 +317,28 @@ class SqfliteStore implements LocalStore {
       priority: row['priority'] as int,
       daysSinceLastPurchase: row['days_since_last_purchase'] as int?,
       averageTicket: (row['average_ticket'] as num).toDouble(),
-      topProduct: row['top_product'] as String?,
-      newProduct: row['new_product'] as String?,
-      recentProducts: recent,
-      estimatedStock: stock,
+    );
+  }
+
+  static ProductRecord _productFromRow(Map<String, Object?> row) {
+    return ProductRecord(
+      product: row['product'] as String,
+      displayed: (row['displayed'] as int) == 1,
+      priceVisible: (row['price_visible'] as int) == 1,
+      productVisible: (row['product_visible'] as int) == 1,
+      units: row['units'] as int,
+      competitionPresent: (row['competition'] as int) == 1,
+      popPresent: (row['pop'] as int) == 1,
+      outOfStock: (row['out_of_stock'] as int) == 1,
     );
   }
 
   static Visit _visitFromRow(
     Map<String, Object?> row, {
+    required List<ProductRecord> products,
     required List<VisitPhoto> photos,
     required List<TrackPoint> track,
   }) {
-    final checkNames = (jsonDecode(row['checks'] as String) as List).cast<String>();
-    final inventory = (jsonDecode(row['inventory'] as String) as Map)
-        .map((k, v) => MapEntry(k as String, v as int));
-
     GeoPoint? geo(String latKey, String lngKey, String accKey) {
       final lat = row[latKey] as double?;
       final lng = row[lngKey] as double?;
@@ -311,8 +355,7 @@ class SqfliteStore implements LocalStore {
       pharmacyId: row['pharmacy_id'] as String,
       arrival: DateTime.fromMillisecondsSinceEpoch(row['arrival_ms'] as int),
       departure: DateTime.fromMillisecondsSinceEpoch(row['departure_ms'] as int),
-      checks: {for (final name in checkNames) PointOfSaleCheck.values.byName(name)},
-      inventory: inventory,
+      products: products,
       competitors: row['competitors'] as String,
       notes: row['notes'] as String,
       checkIn: geo('check_in_lat', 'check_in_lng', 'check_in_acc'),

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/pharmacy.dart';
+import '../models/product_record.dart';
 import '../models/visit.dart';
 import 'local_store.dart';
 import 'seed_data.dart';
@@ -143,6 +144,20 @@ class AppRepository extends ChangeNotifier {
     final visits = _visits.where((v) => v.pharmacyId == pharmacy.id).toList()
       ..sort((a, b) => b.arrival.compareTo(a.arrival));
     return visits.isEmpty ? null : visits.first;
+  }
+
+  /// Último registro de [product] en la farmacia, buscando en las visitas
+  /// de la más reciente a la más antigua. Null si nunca se registró.
+  ProductHistoryEntry? lastProductRecord(Pharmacy pharmacy, String product) {
+    for (final visit in visits) {
+      if (visit.pharmacyId != pharmacy.id) continue;
+      for (final record in visit.products) {
+        if (record.product == product) {
+          return ProductHistoryEntry(date: visit.arrival, record: record);
+        }
+      }
+    }
+    return null;
   }
 
   String newPharmacyId() => 'ph-${DateTime.now().microsecondsSinceEpoch}';

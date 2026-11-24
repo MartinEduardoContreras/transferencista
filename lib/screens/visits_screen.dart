@@ -29,9 +29,9 @@ class VisitsScreen extends StatelessWidget {
         final totalMinutes =
             visits.fold<int>(0, (sum, v) => sum + v.duration.inMinutes);
         final avgMinutes = visits.isEmpty ? 0 : totalMinutes ~/ visits.length;
-        final totalChecks =
-            visits.fold<int>(0, (sum, v) => sum + v.checks.length);
-        final avgChecks = visits.isEmpty ? 0.0 : totalChecks / visits.length;
+        final totalProducts =
+            visits.fold<int>(0, (sum, v) => sum + v.products.length);
+        final avgProducts = visits.isEmpty ? 0.0 : totalProducts / visits.length;
 
         // Agrupa por día; visits ya viene de la más reciente a la más antigua.
         final byDay = <DateTime, List<Visit>>{};
@@ -71,9 +71,8 @@ class VisitsScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _KpiCard(
-                      label: 'Checks promedio',
-                      value: '${avgChecks.toStringAsFixed(1)} de '
-                          '${PointOfSaleCheck.values.length}',
+                      label: 'Productos por visita',
+                      value: avgProducts.toStringAsFixed(1),
                     ),
                   ),
                 ],
