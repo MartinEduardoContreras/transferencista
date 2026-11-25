@@ -9,6 +9,7 @@ class ProductRecord {
     this.competitionPresent = false,
     this.popPresent = false,
     this.outOfStock = false,
+    this.photoPath,
   });
 
   final String product;
@@ -23,6 +24,9 @@ class ProductRecord {
   final bool competitionPresent;
   final bool popPresent;
   final bool outOfStock;
+
+  /// Foto del producto en el punto de venta, tomada durante la visita. Opcional.
+  final String? photoPath;
 }
 
 /// Último registro de un producto en una farmacia, con la visita en que se hizo.

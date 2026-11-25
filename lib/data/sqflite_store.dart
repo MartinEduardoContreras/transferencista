@@ -10,9 +10,10 @@ import '../models/visit_photo.dart';
 import 'local_store.dart';
 
 const _dbName = 'transferencista.db';
-const _dbVersion = 2;
+const _dbVersion = 3;
 
-/// Tabla de productos por visita. Se agregó en la versión 2.
+/// Tabla de productos por visita. Se creó en la versión 2; `photo_path` se agregó
+/// en la versión 3 (ver `onUpgrade`).
 const _visitProductsTable = '''
   CREATE TABLE visit_products (
     visit_id TEXT NOT NULL REFERENCES visits(id) ON DELETE CASCADE,
@@ -24,6 +25,7 @@ const _visitProductsTable = '''
     competition INTEGER NOT NULL DEFAULT 0,
     pop INTEGER NOT NULL DEFAULT 0,
     out_of_stock INTEGER NOT NULL DEFAULT 0,
+    photo_path TEXT,
     PRIMARY KEY (visit_id, product)
   )''';
 
@@ -116,8 +118,11 @@ class SqfliteStore implements LocalStore {
         }
       },
       onUpgrade: (db, oldVersion, _) async {
+        // Quien viene de la versión 1 no tenía la tabla: se crea ya con photo_path.
         if (oldVersion < 2) {
           await db.execute(_visitProductsTable);
+        } else if (oldVersion < 3) {
+          await db.execute('ALTER TABLE visit_products ADD COLUMN photo_path TEXT');
         }
       },
     );
@@ -268,6 +273,7 @@ class SqfliteStore implements LocalStore {
           'competition': record.competitionPresent ? 1 : 0,
           'pop': record.popPresent ? 1 : 0,
           'out_of_stock': record.outOfStock ? 1 : 0,
+          'photo_path': record.photoPath,
         });
       }
 
@@ -327,6 +333,7 @@ class SqfliteStore implements LocalStore {
       competitionPresent: (row['competition'] as int) == 1,
       popPresent: (row['pop'] as int) == 1,
       outOfStock: (row['out_of_stock'] as int) == 1,
+      photoPath: row['photo_path'] as String?,
     );
   }
 

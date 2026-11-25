@@ -39,8 +39,9 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
     return '${entry.record.units} unidades (${formatDate(entry.date)})';
   }
 
-  Future<void> _startVisit() async {
-    final saved = await Navigator.of(context).push<bool>(
+  void _startVisit() {
+    // Al finalizar, VisitScreen vuelve a Hoy directamente.
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => VisitScreen(
           repository: widget.repository,
@@ -49,12 +50,6 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
         ),
       ),
     );
-    if (saved == true && mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Visita registrada')),
-      );
-    }
   }
 
   @override

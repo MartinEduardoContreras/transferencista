@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../data/app_repository.dart';
 import '../models/geo_point.dart';
@@ -15,6 +12,7 @@ import '../models/visit.dart';
 import '../models/visit_photo.dart';
 import '../services/location_service.dart';
 import '../services/movement_tracker.dart';
+import '../services/photo_storage.dart';
 import '../utils/format.dart';
 import 'product_check_screen.dart';
 
@@ -137,24 +135,8 @@ class _VisitScreenState extends State<VisitScreen> {
   }
 
   Future<void> _takePhoto(VisitPhotoKind kind) async {
-    final shot = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1280,
-      imageQuality: 70,
-    );
-    if (shot == null || !mounted) return;
-
-    // Copia la foto a la carpeta de documentos de la app para que no se borre
-    // con la caché del sistema.
-    final docs = await getApplicationDocumentsDirectory();
-    final folder = Directory(p.join(docs.path, 'fotos_visitas'));
-    await folder.create(recursive: true);
-    final savedPath = p.join(
-      folder.path,
-      '${DateTime.now().microsecondsSinceEpoch}_${kind.name}.jpg',
-    );
-    await File(shot.path).copy(savedPath);
-    if (!mounted) return;
+    final savedPath = await takeVisitPhoto(kind.name);
+    if (savedPath == null || !mounted) return;
 
     setState(() {
       _photos.removeWhere((photo) => photo.kind == kind);
@@ -213,7 +195,9 @@ class _VisitScreenState extends State<VisitScreen> {
     );
     await widget.repository.saveVisit(visit);
     if (!mounted) return;
-    Navigator.of(context).pop(true);
+    _showMessage('Visita registrada');
+    // Vuelve a la primera pantalla (Hoy) y cierra la farmacia y la visita.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   VisitPhoto? _photoOf(VisitPhotoKind kind) {
@@ -327,6 +311,7 @@ class _VisitScreenState extends State<VisitScreen> {
                   subtitle: Text(
                     _records[product] != null
                         ? '${_records[product]!.units} unidades registradas'
+                            '${_records[product]!.photoPath != null ? ' · con foto' : ''}'
                         : 'Sin registrar',
                   ),
                   trailing: const Icon(Icons.chevron_right),

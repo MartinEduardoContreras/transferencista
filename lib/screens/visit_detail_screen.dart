@@ -125,7 +125,7 @@ class _ProductSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InfoSection(
+    final section = InfoSection(
       title: record.product,
       rows: [
         InfoRow('Exhibido', VisitDetailScreen._yesNo(record.displayed)),
@@ -135,6 +135,22 @@ class _ProductSection extends StatelessWidget {
         InfoRow('Hay competencia', VisitDetailScreen._yesNo(record.competitionPresent)),
         InfoRow('Material POP', VisitDetailScreen._yesNo(record.popPresent)),
         InfoRow('Hay agotados', VisitDetailScreen._yesNo(record.outOfStock)),
+      ],
+    );
+    final photo = record.photoPath;
+    if (photo == null) return section;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        section,
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 4 / 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(File(photo), fit: BoxFit.cover),
+          ),
+        ),
       ],
     );
   }
