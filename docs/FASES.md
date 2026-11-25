@@ -56,7 +56,7 @@ Limitaciones actuales: los datos viven en memoria (se pierden al cerrar la app) 
 
 ## Fase 3 — Pedido y seguimiento (pendiente)
 
-- Pedido sugerido según inventario, rotación y ticket promedio (paso 7: pedido sugerido/realizado).
+- Pedido sugerido según inventario y rotación (paso 7: pedido sugerido/realizado).
 - Promociones, bonificaciones y obsequios aplicados en la visita (paso 5).
 - Seguimiento a una semana: ¿vendió?, ¿rotó?, ¿hay agotado?, ¿hay devolución? (paso 8).
 - Planeación semanal y priorización por volumen, potencial, días sin compra, inventario y crecimiento (paso 1).

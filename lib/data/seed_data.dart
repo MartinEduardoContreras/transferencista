@@ -21,7 +21,6 @@ const seedPharmacies = <Pharmacy>[
     zone: 'Zona Norte Bogotá',
     priority: 1,
     daysSinceLastPurchase: 43,
-    averageTicket: 185000,
   ),
   Pharmacy(
     id: 'ph-002',
@@ -30,7 +29,6 @@ const seedPharmacies = <Pharmacy>[
     zone: 'Zona Norte Bogotá',
     priority: 2,
     daysSinceLastPurchase: 12,
-    averageTicket: 420000,
   ),
   Pharmacy(
     id: 'ph-003',
@@ -39,7 +37,6 @@ const seedPharmacies = <Pharmacy>[
     zone: 'Zona Norte Bogotá',
     priority: 3,
     daysSinceLastPurchase: 5,
-    averageTicket: 360000,
   ),
   Pharmacy(
     id: 'ph-004',
@@ -48,7 +45,6 @@ const seedPharmacies = <Pharmacy>[
     zone: 'Zona Norte Bogotá',
     priority: 4,
     daysSinceLastPurchase: 27,
-    averageTicket: 290000,
   ),
 ];
 

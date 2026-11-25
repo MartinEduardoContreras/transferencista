@@ -15,11 +15,16 @@ class PharmacyDetailScreen extends StatefulWidget {
     required this.repository,
     required this.pharmacy,
     required this.locationService,
+    this.showStartVisit = true,
   });
 
   final AppRepository repository;
   final Pharmacy pharmacy;
   final LocationService locationService;
+
+  /// Muestra el botón "Iniciar visita". Se oculta cuando la farmacia se consulta
+  /// desde el listado de Farmacias.
+  final bool showStartVisit;
 
   @override
   State<PharmacyDetailScreen> createState() => _PharmacyDetailScreenState();
@@ -72,7 +77,6 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
               InfoRow('Cadena', p.chain),
               InfoRow('Zona', p.zone),
               InfoRow('Última compra', p.lastPurchaseLabel),
-              InfoRow('Ticket promedio', formatCop(p.averageTicket)),
             ],
           ),
           const SizedBox(height: 12),
@@ -122,12 +126,14 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
               ],
             ),
           ],
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _startVisit,
-            icon: const Icon(Icons.storefront),
-            label: const Text('Iniciar visita'),
-          ),
+          if (widget.showStartVisit) ...[
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _startVisit,
+              icon: const Icon(Icons.storefront),
+              label: const Text('Iniciar visita'),
+            ),
+          ],
         ],
       ),
     );

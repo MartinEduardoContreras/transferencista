@@ -41,7 +41,6 @@ const _schema = <String>[
     manager TEXT NOT NULL DEFAULT '',
     priority INTEGER NOT NULL,
     days_since_last_purchase INTEGER,
-    average_ticket REAL NOT NULL DEFAULT 0,
     top_product TEXT,
     new_product TEXT,
     recent_products TEXT NOT NULL DEFAULT '[]',
@@ -214,7 +213,6 @@ class SqfliteStore implements LocalStore {
         'manager': pharmacy.manager,
         'priority': pharmacy.priority,
         'days_since_last_purchase': pharmacy.daysSinceLastPurchase,
-        'average_ticket': pharmacy.averageTicket,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -316,7 +314,6 @@ class SqfliteStore implements LocalStore {
       manager: row['manager'] as String,
       priority: row['priority'] as int,
       daysSinceLastPurchase: row['days_since_last_purchase'] as int?,
-      averageTicket: (row['average_ticket'] as num).toDouble(),
     );
   }
 

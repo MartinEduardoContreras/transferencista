@@ -12,7 +12,6 @@ class Pharmacy {
     this.address = '',
     this.manager = '',
     this.daysSinceLastPurchase,
-    this.averageTicket = 0,
   });
 
   final String id;
@@ -31,7 +30,6 @@ class Pharmacy {
 
   /// Null cuando la farmacia aún no tiene compras registradas.
   final int? daysSinceLastPurchase;
-  final double averageTicket;
 
   String get lastPurchaseLabel => daysSinceLastPurchase == null
       ? 'Sin compras registradas'

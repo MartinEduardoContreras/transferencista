@@ -30,7 +30,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   final _zone = TextEditingController();
   final _address = TextEditingController();
   final _manager = TextEditingController();
-  final _ticket = TextEditingController();
 
   String? _chain;
   int _priority = 3;
@@ -41,7 +40,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
     _zone.dispose();
     _address.dispose();
     _manager.dispose();
-    _ticket.dispose();
     super.dispose();
   }
 
@@ -51,7 +49,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final ticketText = _ticket.text.trim().replaceAll('.', '');
     final pharmacy = Pharmacy(
       id: widget.repository.newPharmacyId(),
       name: _name.text.trim(),
@@ -60,7 +57,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
       address: _address.text.trim(),
       manager: _manager.text.trim(),
       priority: _priority,
-      averageTicket: double.tryParse(ticketText) ?? 0,
     );
     await widget.repository.addPharmacy(pharmacy);
     if (!mounted) return;
@@ -144,21 +140,6 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
               ],
               onChanged: (value) =>
                   setState(() => _priority = value ?? _priority),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _ticket,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Ticket promedio (COP)',
-                hintText: 'Ej. 185000',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) {
-                final text = (v ?? '').trim().replaceAll('.', '');
-                if (text.isEmpty) return null;
-                return double.tryParse(text) == null ? 'Solo números' : null;
-              },
             ),
             const SizedBox(height: 8),
             const Text(

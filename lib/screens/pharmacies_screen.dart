@@ -24,6 +24,7 @@ class PharmaciesScreen extends StatelessWidget {
           repository: repository,
           pharmacy: pharmacy,
           locationService: locationService,
+          showStartVisit: false,
         ),
       ),
     );
