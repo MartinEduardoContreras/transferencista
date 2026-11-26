@@ -5,6 +5,7 @@ import '../models/pharmacy.dart';
 import '../services/location_service.dart';
 import 'new_pharmacy_screen.dart';
 import 'pharmacy_detail_screen.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Listado de farmacias con acceso a la creación de nuevas.
 class PharmaciesScreen extends StatelessWidget {
@@ -50,7 +51,7 @@ class PharmaciesScreen extends StatelessWidget {
       builder: (context, _) {
         final pharmacies = repository.pharmacies;
         return Scaffold(
-          appBar: AppBar(title: const Text('Farmacias')),
+          appBar: const BrandAppBar(title: 'Farmacias'),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _createPharmacy(context),
             icon: const Icon(Icons.add),

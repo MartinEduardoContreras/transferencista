@@ -19,6 +19,7 @@ import '../utils/format.dart';
 import 'product_check_screen.dart';
 import 'product_picker_screen.dart';
 import 'transfer_screen.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Radio en metros a partir del cual se avisa y se registra el trayecto.
 const trackingRadiusMeters = 500.0;
@@ -275,7 +276,7 @@ class _VisitScreenState extends State<VisitScreen> {
     final records = _records.values.toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Visita · ${widget.pharmacy.name}')),
+      appBar: BrandAppBar(title: 'Visita · ${widget.pharmacy.name}'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

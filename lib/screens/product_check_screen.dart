@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/product_record.dart';
 import '../services/photo_storage.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Registro de un producto durante la visita: exhibición, precio, visibilidad,
 /// inventario, competencia, material POP, agotados y foto del producto.
@@ -65,7 +66,7 @@ class _ProductCheckScreenState extends State<ProductCheckScreen> {
   Widget build(BuildContext context) {
     final photo = _photoPath;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.product)),
+      appBar: BrandAppBar(title: widget.product),
       body: Form(
         key: _formKey,
         child: ListView(

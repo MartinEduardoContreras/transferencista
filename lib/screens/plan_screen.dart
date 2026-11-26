@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/app_repository.dart';
 import '../models/pharmacy.dart';
 import '../utils/format.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Plan de visitas: elige una fecha y ordena las farmacias en el orden de visita.
 /// Los cambios se guardan al momento.
@@ -65,7 +66,7 @@ class _PlanScreenState extends State<PlanScreen> {
         final hasAvailable = repo.pharmacies.any((p) => !ids.contains(p.id));
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Plan de visitas')),
+          appBar: const BrandAppBar(title: 'Plan de visitas'),
           body: Column(
             children: [
               Card(

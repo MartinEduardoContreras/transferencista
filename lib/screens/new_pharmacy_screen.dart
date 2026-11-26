@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/app_repository.dart';
 import '../models/pharmacy.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Cadenas o tipos de farmacia que aparecen en el proceso del documento.
 const pharmacyChains = <String>[
@@ -66,7 +67,7 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva farmacia')),
+      appBar: const BrandAppBar(title: 'Nueva farmacia'),
       body: Form(
         key: _formKey,
         child: ListView(

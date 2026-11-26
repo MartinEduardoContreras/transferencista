@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/transfer.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Formulario de una transferencia (pedido): producto de la lista, distribuidor
 /// por donde se hace el pedido y cantidad solicitada. Al guardar devuelve el pedido.
@@ -44,7 +45,7 @@ class _TransferScreenState extends State<TransferScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva transferencia')),
+      appBar: const BrandAppBar(title: 'Nueva transferencia'),
       body: Form(
         key: _formKey,
         child: ListView(

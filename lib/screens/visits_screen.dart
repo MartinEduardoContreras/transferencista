@@ -4,6 +4,7 @@ import '../data/app_repository.dart';
 import '../models/visit.dart';
 import '../utils/format.dart';
 import 'visit_detail_screen.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Historial de visitas con indicadores, agrupado por fecha (se puede expandir o colapsar).
 class VisitsScreen extends StatelessWidget {
@@ -41,7 +42,7 @@ class VisitsScreen extends StatelessWidget {
         final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Visitas')),
+          appBar: const BrandAppBar(title: 'Visitas'),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [

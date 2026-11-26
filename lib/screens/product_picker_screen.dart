@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/product_record.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Elige un producto del catálogo que se encontró en la farmacia y su cantidad.
 /// Solo muestra los productos que todavía no están en la visita. Al elegir uno,
@@ -43,7 +44,7 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Agregar producto')),
+      appBar: const BrandAppBar(title: 'Agregar producto'),
       body: Column(
         children: [
           Padding(

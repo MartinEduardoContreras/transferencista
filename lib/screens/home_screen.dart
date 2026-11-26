@@ -5,6 +5,7 @@ import '../models/pharmacy.dart';
 import '../services/location_service.dart';
 import '../utils/format.dart';
 import 'pharmacy_detail_screen.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Planeación del día: las farmacias del plan de hoy, en orden de visita, y la cobertura.
 class HomeScreen extends StatelessWidget {
@@ -42,25 +43,9 @@ class HomeScreen extends StatelessWidget {
         final coverage = planned.isEmpty ? 0.0 : visited / planned.length;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                Image.asset('assets/images/logo.png', height: 36),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Planeación del día'),
-                      Text(
-                        formatDate(today),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          appBar: BrandAppBar(
+            title: 'Planeación del día',
+            subtitle: formatDate(today),
           ),
           body: ListView(
             padding: const EdgeInsets.all(16),

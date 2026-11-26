@@ -7,6 +7,7 @@ import '../models/product_record.dart';
 import '../models/visit.dart';
 import '../utils/format.dart';
 import '../widgets/info_section.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Datos completos de una visita registrada.
 class VisitDetailScreen extends StatelessWidget {
@@ -26,7 +27,7 @@ class VisitDetailScreen extends StatelessWidget {
     final pharmacy = repository.pharmacyById(visit.pharmacyId);
 
     return Scaffold(
-      appBar: AppBar(title: Text(pharmacy?.name ?? 'Visita')),
+      appBar: BrandAppBar(title: pharmacy?.name ?? 'Visita'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

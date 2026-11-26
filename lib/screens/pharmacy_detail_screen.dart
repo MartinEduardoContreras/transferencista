@@ -7,6 +7,7 @@ import '../services/location_service.dart';
 import '../utils/format.dart';
 import '../widgets/info_section.dart';
 import 'visit_screen.dart';
+import '../widgets/brand_app_bar.dart';
 
 /// Preparación antes de la visita: qué sabe la transferencista del cliente.
 class PharmacyDetailScreen extends StatefulWidget {
@@ -67,7 +68,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
     final history = selected == null ? null : repo.lastProductRecord(p, selected);
 
     return Scaffold(
-      appBar: AppBar(title: Text(p.name)),
+      appBar: BrandAppBar(title: p.name),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
