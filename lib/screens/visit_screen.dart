@@ -15,6 +15,8 @@ import '../models/visit_photo.dart';
 import '../services/location_service.dart';
 import '../services/movement_tracker.dart';
 import '../services/photo_storage.dart';
+import '../services/signature_storage.dart';
+import '../widgets/signature_pad.dart';
 import '../utils/format.dart';
 import 'product_check_screen.dart';
 import 'product_picker_screen.dart';
@@ -61,12 +63,16 @@ class _VisitScreenState extends State<VisitScreen> {
   final List<Transfer> _transfers = [];
   final _competitors = TextEditingController();
   final _notes = TextEditingController();
+  final _signerName = TextEditingController();
+  final _signature = SignatureController();
 
   @override
   void dispose() {
     _trackingSub?.cancel();
     _competitors.dispose();
     _notes.dispose();
+    _signerName.dispose();
+    _signature.dispose();
     super.dispose();
   }
 
@@ -199,6 +205,15 @@ class _VisitScreenState extends State<VisitScreen> {
   }
 
   Future<void> _finish() async {
+    // La firma del responsable es obligatoria: sin ella no se guarda la visita.
+    if (_signerName.text.trim().isEmpty) {
+      _showMessage('Escribe el nombre del responsable de la droguería');
+      return;
+    }
+    if (_signature.isEmpty) {
+      _showMessage('Falta la firma del responsable');
+      return;
+    }
     final result = await _readLocation();
     if (!mounted) return;
     if (!result.isSuccess) {
@@ -209,6 +224,11 @@ class _VisitScreenState extends State<VisitScreen> {
 
     _trackingSub?.cancel();
     _trackingSub = null;
+
+    final signatureBytes = await _signature.toPng();
+    final signaturePath =
+        signatureBytes == null ? null : await saveSignaturePng(signatureBytes);
+    if (!mounted) return;
 
     final visit = Visit(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -224,6 +244,8 @@ class _VisitScreenState extends State<VisitScreen> {
       photos: List.of(_photos),
       trackingConsent: _trackingConsent,
       track: _tracker?.points ?? const <TrackPoint>[],
+      signerName: _signerName.text.trim(),
+      signaturePath: signaturePath,
     );
     await widget.repository.saveVisit(visit);
     if (!mounted) return;
@@ -408,7 +430,33 @@ class _VisitScreenState extends State<VisitScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            Text(
+              'Firma del responsable de la droguería',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _signerName,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del responsable *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SignaturePad(controller: _signature),
+            ListenableBuilder(
+              listenable: _signature,
+              builder: (context, _) => Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _signature.isEmpty ? null : _signature.clear,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Borrar firma'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _busy ? null : _finish,
               icon: const Icon(Icons.check),

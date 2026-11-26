@@ -147,6 +147,23 @@ void main() {
     expect(saved.transfers.first.quantity, 6);
   });
 
+  test('el responsable y la ruta de la firma quedan en la visita', () async {
+    final repo = _repoWithPharmacies();
+    final now = DateTime.now();
+    await repo.saveVisit(Visit(
+      id: 'firma',
+      pharmacyId: _alfa.id,
+      arrival: now,
+      departure: now,
+      signerName: 'Ana Pérez',
+      signaturePath: '/docs/firmas/1_firma.png',
+    ));
+
+    final saved = repo.lastVisit(_alfa)!;
+    expect(saved.signerName, 'Ana Pérez');
+    expect(saved.signaturePath, '/docs/firmas/1_firma.png');
+  });
+
   testWidgets('antes del check-in solo se ofrece registrar la llegada',
       (tester) async {
     final repo = _repoWithPharmacies();

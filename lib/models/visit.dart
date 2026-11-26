@@ -20,6 +20,8 @@ class Visit {
     this.photos = const [],
     this.trackingConsent = false,
     this.track = const [],
+    this.signerName = '',
+    this.signaturePath,
   });
 
   final String id;
@@ -49,6 +51,12 @@ class Visit {
 
   /// Puntos registrados cuando la persona se alejó más de 500 m de la farmacia.
   final List<TrackPoint> track;
+
+  /// Nombre del responsable de la droguería que firma la visita.
+  final String signerName;
+
+  /// Ruta del PNG con la firma del responsable.
+  final String? signaturePath;
 
   Duration get duration => departure.difference(arrival);
 }

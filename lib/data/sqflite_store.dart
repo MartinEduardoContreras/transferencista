@@ -11,7 +11,7 @@ import '../models/visit_photo.dart';
 import 'local_store.dart';
 
 const _dbName = 'transferencista.db';
-const _dbVersion = 4;
+const _dbVersion = 5;
 
 /// Transferencias (pedidos) de una visita. Se creó en la versión 4.
 const _visitTransfersTable = '''
@@ -82,7 +82,9 @@ const _schema = <String>[
     check_out_lat REAL,
     check_out_lng REAL,
     check_out_acc REAL,
-    tracking_consent INTEGER NOT NULL DEFAULT 0
+    tracking_consent INTEGER NOT NULL DEFAULT 0,
+    signer_name TEXT NOT NULL DEFAULT '',
+    signature_path TEXT
   )''',
   _visitProductsTable,
   _visitTransfersTable,
@@ -133,6 +135,10 @@ class SqfliteStore implements LocalStore {
         }
         if (oldVersion < 4) {
           await db.execute(_visitTransfersTable);
+        }
+        if (oldVersion < 5) {
+          await db.execute("ALTER TABLE visits ADD COLUMN signer_name TEXT NOT NULL DEFAULT ''");
+          await db.execute('ALTER TABLE visits ADD COLUMN signature_path TEXT');
         }
       },
     );
@@ -272,6 +278,8 @@ class SqfliteStore implements LocalStore {
           'check_out_lng': visit.checkOut?.longitude,
           'check_out_acc': visit.checkOut?.accuracyMeters,
           'tracking_consent': visit.trackingConsent ? 1 : 0,
+          'signer_name': visit.signerName,
+          'signature_path': visit.signaturePath,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -385,6 +393,8 @@ class SqfliteStore implements LocalStore {
       photos: photos,
       trackingConsent: (row['tracking_consent'] as int) == 1,
       track: track,
+      signerName: (row['signer_name'] as String?) ?? '',
+      signaturePath: row['signature_path'] as String?,
     );
   }
 }

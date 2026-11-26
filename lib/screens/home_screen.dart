@@ -84,7 +84,19 @@ class HomeScreen extends StatelessWidget {
                 Card(
                   child: ListTile(
                     leading: CircleAvatar(child: Text('${i + 1}')),
-                    title: Text(planned[i].name),
+                    title: Row(
+                      children: [
+                        Expanded(child: Text(planned[i].name)),
+                        const SizedBox(width: 8),
+                        Chip(
+                          label: Text('Prioridad ${planned[i].priority}'),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: planned[i].priority == 1 && !repository.wasVisitedToday(planned[i])
+                              ? Theme.of(context).colorScheme.errorContainer
+                              : null,
+                        ),
+                      ],
+                    ),
                     subtitle: Text(
                       '${planned[i].chain} · ${planned[i].lastPurchaseLabel}',
                     ),

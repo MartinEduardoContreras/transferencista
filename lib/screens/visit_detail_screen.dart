@@ -126,6 +126,26 @@ class VisitDetailScreen extends StatelessWidget {
               InfoRow('Observaciones', visit.notes.isEmpty ? '—' : visit.notes),
             ],
           ),
+          const SizedBox(height: 12),
+          InfoSection(
+            title: 'Firma del responsable',
+            rows: [
+              InfoRow(
+                'Nombre',
+                visit.signerName.isEmpty ? '—' : visit.signerName,
+              ),
+            ],
+          ),
+          if (visit.signaturePath != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: ColoredBox(
+                color: Colors.white,
+                child: Image.file(File(visit.signaturePath!), fit: BoxFit.contain),
+              ),
+            ),
+          ],
         ],
       ),
     );
