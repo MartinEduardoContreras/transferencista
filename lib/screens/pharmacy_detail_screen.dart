@@ -57,7 +57,12 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
     final p = widget.pharmacy;
     final repo = widget.repository;
     final lastVisit = repo.lastVisit(p);
-    final products = repo.portfolio;
+    final products = repo.catalog;
+    // Inventario estimado solo para productos con registros en esta farmacia.
+    final withHistory = [
+      for (final product in products)
+        if (repo.lastProductRecord(p, product) != null) product,
+    ];
     final selected = _selectedProduct ?? (products.isEmpty ? null : products.first);
     final history = selected == null ? null : repo.lastProductRecord(p, selected);
 
@@ -106,8 +111,10 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
           InfoSection(
             title: 'Inventario estimado',
             rows: [
-              for (final product in products)
+              for (final product in withHistory)
                 InfoRow(product, _estimatedUnits(repo.lastProductRecord(p, product))),
+              if (withHistory.isEmpty)
+                const InfoRow('Sin inventario registrado', '—'),
             ],
           ),
           if (lastVisit != null) ...[

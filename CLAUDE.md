@@ -54,11 +54,14 @@ lib/
     visit.dart                 Visit y enum PointOfSaleCheck (checklist del punto)
   data/
     app_repository.dart        AppRepository: ruta, visitas (en memoria)
-    seed_data.dart             datos de ejemplo (farmacias y portafolio ficticios)
+    product_catalog.dart       catálogo de productos (de productos.xlsx, sin texto posterior a INVIMA)
+    distributors.dart          distribuidores para transferencias (de Distribuidores.xlsx)
   screens/
     home_screen.dart           ruta del día y cobertura
     pharmacy_detail_screen.dart  preparación de la visita
-    visit_screen.dart          registro de la visita
+    visit_screen.dart          registro de la visita: productos, transferencias, fotos
+    product_picker_screen.dart agregar producto del catálogo con su cantidad
+    transfer_screen.dart       transferencia: producto, distribuidor y cantidad
   widgets/
     info_section.dart          InfoSection e InfoRow (tarjetas clave/valor)
   utils/
@@ -75,8 +78,8 @@ docs/
 - Los datos pasan por `AppRepository`. Las pantallas no deben tener datos de ejemplo embebidos.
   Cuando llegue la fase 4, reemplaza la implementación del repositorio sin cambiar sus métodos
   públicos cuando sea posible.
-- Los datos de `seed_data.dart` son ficticios. No introducir datos reales de farmacias ni de
-  clientes en el repositorio.
+- La app inicia sin datos de prueba. El catálogo de productos y los distribuidores salen de los
+  Excel del laboratorio. No introducir datos reales de farmacias ni de clientes en el repositorio.
 - Nombres de clases en inglés con términos del dominio en español cuando ya existen en el
   documento (`Pharmacy`, `Visit`; usa "farmacia" en textos visibles).
 - Pesos colombianos con `formatCop`; horas con `formatTime`. No añadir `intl` sin pedirlo.

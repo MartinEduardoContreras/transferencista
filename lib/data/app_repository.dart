@@ -4,7 +4,7 @@ import '../models/pharmacy.dart';
 import '../models/product_record.dart';
 import '../models/visit.dart';
 import 'local_store.dart';
-import 'seed_data.dart';
+import 'product_catalog.dart';
 
 /// Inicio del día (00:00 local) para usarlo como clave de fecha.
 DateTime startOfDay(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -14,7 +14,6 @@ DateTime startOfDay(DateTime date) => DateTime(date.year, date.month, date.day);
 class AppRepository extends ChangeNotifier {
   AppRepository({
     required List<Pharmacy> pharmacies,
-    required this.portfolio,
     List<Visit> visits = const [],
     Map<DateTime, List<String>> plans = const {},
     LocalStore? store,
@@ -26,49 +25,15 @@ class AppRepository extends ChangeNotifier {
         },
         _store = store ?? MemoryStore();
 
-  /// Abre el repositorio desde el almacenamiento local. La primera vez carga los
-  /// datos de ejemplo y los guarda; después solo lee lo que ya existe.
-  static Future<AppRepository> open(LocalStore store, {DateTime? now}) async {
+  /// Abre el repositorio desde el almacenamiento local. No carga datos de prueba:
+  /// la app inicia limpia y solo muestra lo que se registra.
+  static Future<AppRepository> open(LocalStore store) async {
     final snapshot = await store.loadSnapshot();
-    if (snapshot.seeded) {
-      return AppRepository(
-        pharmacies: snapshot.pharmacies,
-        portfolio: seedPortfolio,
-        visits: snapshot.visits,
-        plans: snapshot.plans,
-        store: store,
-      );
-    }
-
-    final clock = now ?? DateTime.now();
-    final repo = AppRepository(
-      pharmacies: seedPharmacies,
-      portfolio: seedPortfolio,
-      visits: buildSeedVisits(clock),
-      plans: buildSeedPlans(clock),
-      store: store,
-    );
-    for (final pharmacy in repo._pharmacies) {
-      await store.savePharmacy(pharmacy);
-    }
-    for (final entry in repo._plans.entries) {
-      await store.savePlan(entry.key, entry.value);
-    }
-    for (final visit in repo._visits) {
-      await store.saveVisit(visit);
-    }
-    await store.markSeeded();
-    return repo;
-  }
-
-  /// Repositorio solo en memoria, con datos de ejemplo. Usado en pruebas.
-  factory AppRepository.seeded({DateTime? now}) {
-    final clock = now ?? DateTime.now();
     return AppRepository(
-      pharmacies: seedPharmacies,
-      portfolio: seedPortfolio,
-      visits: buildSeedVisits(clock),
-      plans: buildSeedPlans(clock),
+      pharmacies: snapshot.pharmacies,
+      visits: snapshot.visits,
+      plans: snapshot.plans,
+      store: store,
     );
   }
 
@@ -79,8 +44,9 @@ class AppRepository extends ChangeNotifier {
   /// Plan de visitas por día: lista de ids de farmacia en orden de visita.
   final Map<DateTime, List<String>> _plans;
 
-  /// Productos del laboratorio que se revisan en inventario y activación.
-  final List<String> portfolio;
+  /// Productos del catálogo (productos.xlsx) que se registran en la visita y en
+  /// las transferencias.
+  List<String> get catalog => productCatalog;
 
   /// Todas las farmacias, ordenadas por nombre.
   List<Pharmacy> get pharmacies {

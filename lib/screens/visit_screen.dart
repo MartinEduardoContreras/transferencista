@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/app_repository.dart';
+import '../data/distributors.dart';
 import '../models/geo_point.dart';
 import '../models/pharmacy.dart';
 import '../models/product_record.dart';
 import '../models/track_point.dart';
+import '../models/transfer.dart';
 import '../models/visit.dart';
 import '../models/visit_photo.dart';
 import '../services/location_service.dart';
@@ -15,14 +17,16 @@ import '../services/movement_tracker.dart';
 import '../services/photo_storage.dart';
 import '../utils/format.dart';
 import 'product_check_screen.dart';
+import 'product_picker_screen.dart';
+import 'transfer_screen.dart';
 
 /// Radio en metros a partir del cual se avisa y se registra el trayecto.
 const trackingRadiusMeters = 500.0;
 
 /// Registro de la visita. Primero solo se ofrece el check-in GPS. Después aparecen
-/// las fotos, los productos revisados, la competencia y las observaciones.
-/// Al iniciar, la persona acepta el registro de trayecto (con aviso visible).
-/// El check-out GPS se pide al finalizar.
+/// las fotos, los productos encontrados, las transferencias (pedidos), la
+/// competencia y las observaciones. Al iniciar, la persona acepta el registro de
+/// trayecto (con aviso visible). El check-out GPS se pide al finalizar.
 class VisitScreen extends StatefulWidget {
   const VisitScreen({
     super.key,
@@ -51,8 +55,9 @@ class _VisitScreenState extends State<VisitScreen> {
 
   final List<VisitPhoto> _photos = [];
 
-  /// Registro por producto, indexado por nombre de producto.
+  /// Productos encontrados, indexados por nombre. El orden es el de registro.
   final Map<String, ProductRecord> _records = {};
+  final List<Transfer> _transfers = [];
   final _competitors = TextEditingController();
   final _notes = TextEditingController();
 
@@ -148,6 +153,22 @@ class _VisitScreenState extends State<VisitScreen> {
     });
   }
 
+  /// Agrega un producto encontrado que todavía no está en la visita.
+  Future<void> _addProduct() async {
+    final record = await Navigator.of(context).push<ProductRecord>(
+      MaterialPageRoute(
+        builder: (_) => ProductPickerScreen(
+          catalog: widget.repository.catalog,
+          registered: _records.keys.toSet(),
+        ),
+      ),
+    );
+    if (record != null && mounted) {
+      setState(() => _records[record.product] = record);
+    }
+  }
+
+  /// Completa o corrige el registro de un producto ya agregado.
   Future<void> _openProduct(String product) async {
     final result = await Navigator.of(context).push<ProductRecord>(
       MaterialPageRoute(
@@ -159,6 +180,20 @@ class _VisitScreenState extends State<VisitScreen> {
     );
     if (result != null && mounted) {
       setState(() => _records[product] = result);
+    }
+  }
+
+  Future<void> _addTransfer() async {
+    final transfer = await Navigator.of(context).push<Transfer>(
+      MaterialPageRoute(
+        builder: (_) => TransferScreen(
+          catalog: widget.repository.catalog,
+          distributors: distributors,
+        ),
+      ),
+    );
+    if (transfer != null && mounted) {
+      setState(() => _transfers.add(transfer));
     }
   }
 
@@ -174,17 +209,13 @@ class _VisitScreenState extends State<VisitScreen> {
     _trackingSub?.cancel();
     _trackingSub = null;
 
-    final products = [
-      for (final product in widget.repository.portfolio)
-        if (_records[product] != null) _records[product]!,
-    ];
-
     final visit = Visit(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       pharmacyId: widget.pharmacy.id,
       arrival: _arrival!,
       departure: DateTime.now(),
-      products: products,
+      products: _records.values.toList(),
+      transfers: List.of(_transfers),
       competitors: _competitors.text.trim(),
       notes: _notes.text.trim(),
       checkIn: _checkIn,
@@ -241,6 +272,7 @@ class _VisitScreenState extends State<VisitScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final checkedIn = _checkIn != null;
+    final records = _records.values.toList();
 
     return Scaffold(
       appBar: AppBar(title: Text('Visita · ${widget.pharmacy.name}')),
@@ -294,30 +326,69 @@ class _VisitScreenState extends State<VisitScreen> {
             Text('Productos en esta visita', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
-              'Toca un producto para registrar lo que encontraste.',
+              'Agrega los productos que encuentres con su cantidad. '
+              'Toca uno para completar o corregir sus datos.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
-            for (final product in widget.repository.portfolio)
+            if (records.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Aún no hay productos registrados.'),
+              ),
+            for (final record in records)
               Card(
                 child: ListTile(
-                  leading: Icon(
-                    _records[product] != null
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    color: _records[product] != null ? Colors.green : null,
-                  ),
-                  title: Text(product),
+                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  title: Text(record.product),
                   subtitle: Text(
-                    _records[product] != null
-                        ? '${_records[product]!.units} unidades registradas'
-                            '${_records[product]!.photoPath != null ? ' · con foto' : ''}'
-                        : 'Sin registrar',
+                    '${record.units} unidades registradas'
+                    '${record.photoPath != null ? ' · con foto' : ''}',
                   ),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openProduct(product),
+                  onTap: () => _openProduct(record.product),
                 ),
               ),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _addProduct,
+              icon: const Icon(Icons.add),
+              label: const Text('Agregar producto'),
+            ),
+            const SizedBox(height: 16),
+            Text('Transferencias', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Pedidos de la farmacia: producto, distribuidor y cantidad. '
+              'Puedes registrar varios.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            if (_transfers.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Aún no hay transferencias.'),
+              ),
+            for (var i = 0; i < _transfers.length; i++)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.local_shipping_outlined),
+                  title: Text(_transfers[i].product),
+                  subtitle: Text(
+                    '${_transfers[i].distributor} · '
+                    '${_transfers[i].quantity} unidades',
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Quitar transferencia',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => setState(() => _transfers.removeAt(i)),
+                  ),
+                ),
+              ),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _addTransfer,
+              icon: const Icon(Icons.add),
+              label: const Text('Agregar transferencia'),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _competitors,

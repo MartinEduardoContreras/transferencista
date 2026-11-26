@@ -1,6 +1,7 @@
 import 'geo_point.dart';
 import 'product_record.dart';
 import 'track_point.dart';
+import 'transfer.dart';
 import 'visit_photo.dart';
 
 /// Registro de una visita a una farmacia.
@@ -11,6 +12,7 @@ class Visit {
     required this.arrival,
     required this.departure,
     this.products = const [],
+    this.transfers = const [],
     this.competitors = '',
     this.notes = '',
     this.checkIn,
@@ -33,6 +35,9 @@ class Visit {
 
   /// Productos revisados en esta visita, con lo que se encontró de cada uno.
   final List<ProductRecord> products;
+
+  /// Pedidos (transferencias) registrados en esta visita. Puede haber varios.
+  final List<Transfer> transfers;
   final String competitors;
   final String notes;
 

@@ -2,12 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:transferencista/app.dart';
 import 'package:transferencista/data/app_repository.dart';
+import 'package:transferencista/data/distributors.dart';
 import 'package:transferencista/data/local_store.dart';
+import 'package:transferencista/data/product_catalog.dart';
 import 'package:transferencista/models/geo_point.dart';
 import 'package:transferencista/models/pharmacy.dart';
 import 'package:transferencista/models/product_record.dart';
+import 'package:transferencista/models/transfer.dart';
 import 'package:transferencista/models/visit.dart';
 import 'package:transferencista/screens/new_pharmacy_screen.dart';
+import 'package:transferencista/screens/transfer_screen.dart';
 import 'package:transferencista/screens/visit_screen.dart';
 import 'package:transferencista/services/location_service.dart';
 import 'package:transferencista/services/movement_tracker.dart';
@@ -18,46 +22,85 @@ import 'fakes/fake_location_service.dart';
 
 const _point = GeoPoint(latitude: 4.6, longitude: -74.1, accuracyMeters: 12);
 
+/// Farmacias de prueba (ficticias).
+const _alfa = Pharmacy(
+  id: 'ph-001',
+  name: 'Farmacia Alfa',
+  chain: 'Independiente',
+  zone: 'Zona Norte',
+  priority: 1,
+);
+const _beta = Pharmacy(
+  id: 'ph-002',
+  name: 'Farmacia Beta',
+  chain: 'Independiente',
+  zone: 'Zona Sur',
+  priority: 2,
+);
+
+AppRepository _repoWithPharmacies({Map<DateTime, List<String>> plans = const {}}) =>
+    AppRepository(pharmacies: const [_beta, _alfa], plans: plans);
+
 void main() {
   test('la ruta se ordena por prioridad', () {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     final priorities = repo.route.map((p) => p.priority).toList();
-    expect(priorities, [...priorities]..sort());
+    expect(priorities, [1, 2]);
   });
 
-  test('guardar una visita marca la farmacia como visitada hoy', () {
-    final repo = AppRepository.seeded();
+  test('el catálogo viene de productos.xlsx sin el texto posterior a INVIMA', () {
+    expect(productCatalog, hasLength(44));
+    expect(productCatalog.any((p) => p.contains('INVIMA')), isFalse);
+    expect(productCatalog, contains('LYPTUS JBE NIÑOS'));
+    expect(distributors, hasLength(25));
+  });
+
+  test('guardar una visita marca la farmacia como visitada hoy', () async {
+    final repo = _repoWithPharmacies();
     final pharmacy = repo.route.first;
     expect(repo.wasVisitedToday(pharmacy), isFalse);
 
     final now = DateTime.now();
-    repo.saveVisit(Visit(
+    await repo.saveVisit(Visit(
       id: '1',
       pharmacyId: pharmacy.id,
       arrival: now,
       departure: now,
       products: const [
-        ProductRecord(product: 'Sertralina', displayed: true, units: 3),
+        ProductRecord(product: 'LYPTUS JBE ADULTOS', displayed: true, units: 3),
       ],
       checkIn: _point,
       checkOut: _point,
     ));
 
     expect(repo.wasVisitedToday(pharmacy), isTrue);
-    final history = repo.lastProductRecord(pharmacy, 'Sertralina');
+    final history = repo.lastProductRecord(pharmacy, 'LYPTUS JBE ADULTOS');
     expect(history?.record.units, 3);
     expect(history?.record.displayed, isTrue);
     expect(repo.lastVisit(pharmacy)?.checkIn?.accuracyMeters, 12);
   });
 
-  test('el historial por producto devuelve el último registro', () {
-    final repo = AppRepository.seeded();
-    final pharmacy = repo.pharmacyById('ph-003')!;
-    // ph-003 tiene vitaminas en una visita de hace 5 días (14 unidades).
-    final entry = repo.lastProductRecord(pharmacy, 'Vitaminas');
-    expect(entry?.record.units, 14);
-    expect(entry?.record.productVisible, isTrue);
-    expect(repo.lastProductRecord(pharmacy, 'Melatonina'), isNull);
+  test('el historial por producto devuelve el último registro', () async {
+    final repo = _repoWithPharmacies();
+    final older = DateTime.now().subtract(const Duration(days: 5));
+    final newer = DateTime.now().subtract(const Duration(days: 1));
+    await repo.saveVisit(Visit(
+      id: 'old',
+      pharmacyId: _alfa.id,
+      arrival: older,
+      departure: older,
+      products: const [ProductRecord(product: 'CALCIMAX X 500 GR', units: 14)],
+    ));
+    await repo.saveVisit(Visit(
+      id: 'new',
+      pharmacyId: _alfa.id,
+      arrival: newer,
+      departure: newer,
+      products: const [ProductRecord(product: 'CALCIMAX X 500 GR', units: 2)],
+    ));
+
+    expect(repo.lastProductRecord(_alfa, 'CALCIMAX X 500 GR')?.record.units, 2);
+    expect(repo.lastProductRecord(_alfa, 'FIBLAX TARRO X 400 GR'), isNull);
   });
 
   test('formato de pesos colombianos', () {
@@ -65,27 +108,48 @@ void main() {
     expect(formatCop(950), '\$950');
   });
 
-  test('las visitas de ejemplo no marcan la ruta de hoy', () {
-    final repo = AppRepository.seeded();
-    expect(repo.visits, isNotEmpty);
-    expect(repo.route.any(repo.wasVisitedToday), isFalse);
-  });
-
-  test('el plan del día conserva el orden de visita y se puede cambiar', () {
-    final repo = AppRepository.seeded();
+  test('el plan del día conserva el orden de visita y se puede cambiar', () async {
     final today = DateTime.now();
-    expect(repo.planIds(today), ['ph-001', 'ph-002', 'ph-003', 'ph-004']);
+    final repo = _repoWithPharmacies(plans: {today: ['ph-001', 'ph-002']});
+    expect(repo.planIds(today), ['ph-001', 'ph-002']);
 
-    repo.setPlan(today, ['ph-003', 'ph-001']);
-    expect(repo.planFor(today).map((p) => p.id), ['ph-003', 'ph-001']);
+    await repo.setPlan(today, ['ph-002', 'ph-001']);
+    expect(repo.planFor(today).map((p) => p.id), ['ph-002', 'ph-001']);
 
     final tomorrow = today.add(const Duration(days: 1));
     expect(repo.planFor(tomorrow), isEmpty);
   });
 
+  test('una transferencia guardada queda en la visita', () async {
+    final repo = _repoWithPharmacies();
+    final now = DateTime.now();
+    await repo.saveVisit(Visit(
+      id: 'tr',
+      pharmacyId: _alfa.id,
+      arrival: now,
+      departure: now,
+      transfers: const [
+        Transfer(
+          product: 'FOX SURE FRESA X 400 GR',
+          distributor: 'MARIO TOBON',
+          quantity: 6,
+        ),
+        Transfer(
+          product: 'FOX SURE VAINILLA X 400 GRAMOS',
+          distributor: 'MARIO TOBON',
+          quantity: 2,
+        ),
+      ],
+    ));
+
+    final saved = repo.lastVisit(_alfa)!;
+    expect(saved.transfers, hasLength(2));
+    expect(saved.transfers.first.quantity, 6);
+  });
+
   testWidgets('antes del check-in solo se ofrece registrar la llegada',
       (tester) async {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     await tester.pumpWidget(MaterialApp(
       home: VisitScreen(
         repository: repo,
@@ -117,6 +181,28 @@ void main() {
       const Offset(0, -200),
     );
     expect(find.text('Finalizar visita'), findsOneWidget);
+  });
+
+  testWidgets('la transferencia exige producto, distribuidor y cantidad',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: TransferScreen(
+        catalog: productCatalog,
+        distributors: distributors,
+      ),
+    ));
+
+    await tester.dragUntilVisible(
+      find.text('Guardar transferencia'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    await tester.tap(find.text('Guardar transferencia'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Selecciona el producto'), findsOneWidget);
+    expect(find.text('Selecciona el distribuidor'), findsOneWidget);
+    expect(find.text('Escribe una cantidad mayor a 0'), findsOneWidget);
   });
 
   test('la distancia entre dos puntos es correcta', () {
@@ -154,11 +240,11 @@ void main() {
     expect(tracker.points, hasLength(2));
   });
 
-  test('open siembra la primera vez y después lee lo ya guardado', () async {
+  test('open arranca sin datos de prueba y después lee lo ya guardado', () async {
     final store = MemoryStore();
-    final first = await AppRepository.open(store, now: DateTime(2026, 11, 20, 9));
-    expect(first.pharmacies.length, 4);
-    expect(first.visits.length, 3);
+    final first = await AppRepository.open(store);
+    expect(first.pharmacies, isEmpty);
+    expect(first.visits, isEmpty);
 
     await first.addPharmacy(const Pharmacy(
       id: 'ph-persistida',
@@ -168,16 +254,29 @@ void main() {
       priority: 1,
     ));
     await first.setPlan(DateTime(2026, 11, 21), ['ph-persistida']);
+    await first.saveVisit(Visit(
+      id: 'v-persistida',
+      pharmacyId: 'ph-persistida',
+      arrival: DateTime(2026, 11, 21, 9),
+      departure: DateTime(2026, 11, 21, 9, 30),
+      transfers: const [
+        Transfer(
+          product: 'VIT COMPLEX FRESA X 400 GR',
+          distributor: 'DROGUERIA VITALIS MEDICA',
+          quantity: 4,
+        ),
+      ],
+    ));
 
     final second = await AppRepository.open(store);
-    expect(second.pharmacies.length, 5);
+    expect(second.pharmacies.length, 1);
     expect(second.pharmacyById('ph-persistida')?.name, 'Farmacia Persistida');
-    expect(second.visits.length, 3);
     expect(second.planIds(DateTime(2026, 11, 21)), ['ph-persistida']);
+    expect(second.visits.single.transfers.single.quantity, 4);
   });
 
   test('addPharmacy agrega la farmacia a la ruta y notifica', () {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     var notified = 0;
     repo.addListener(() => notified++);
     final before = repo.route.length;
@@ -196,21 +295,22 @@ void main() {
   });
 
   testWidgets('la app muestra la planeación del día', (tester) async {
+    final repo = _repoWithPharmacies(plans: {DateTime.now(): ['ph-001']});
     await tester.pumpWidget(
       TransferencistaApp(
-        repository: AppRepository.seeded(),
+        repository: repo,
         locationService: const FakeLocationService(
           LocationResult.failure(LocationFailure.unavailable),
         ),
       ),
     );
     expect(find.text('Planeación del día'), findsOneWidget);
-    expect(find.text('Farmacia San José'), findsOneWidget);
+    expect(find.text('Farmacia Alfa'), findsOneWidget);
   });
 
   testWidgets('el formulario de farmacia valida los campos obligatorios',
       (tester) async {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     final before = repo.pharmacies.length;
     await tester.pumpWidget(MaterialApp(
       home: NewPharmacyScreen(repository: repo),
@@ -233,11 +333,18 @@ void main() {
     expect(repo.pharmacies.length, before);
   });
 
-  testWidgets('la pestaña Visitas muestra el historial de ejemplo',
-      (tester) async {
+  testWidgets('la pestaña Visitas muestra el historial', (tester) async {
+    final repo = _repoWithPharmacies();
+    final now = DateTime.now();
+    await repo.saveVisit(Visit(
+      id: 'h1',
+      pharmacyId: _alfa.id,
+      arrival: now,
+      departure: now.add(const Duration(minutes: 30)),
+    ));
     await tester.pumpWidget(
       TransferencistaApp(
-        repository: AppRepository.seeded(),
+        repository: repo,
         locationService: const FakeLocationService(
           LocationResult.failure(LocationFailure.unavailable),
         ),
@@ -246,13 +353,13 @@ void main() {
     await tester.tap(find.text('Visitas'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Farmacia San José'), findsOneWidget);
+    expect(find.text('Farmacia Alfa'), findsOneWidget);
     expect(find.text('Duración promedio'), findsOneWidget);
   });
 
   testWidgets('check-in con GPS muestra la ubicación registrada',
       (tester) async {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     await tester.pumpWidget(MaterialApp(
       home: VisitScreen(
         repository: repo,
@@ -271,7 +378,7 @@ void main() {
   });
 
   testWidgets('sin GPS muestra el motivo del fallo', (tester) async {
-    final repo = AppRepository.seeded();
+    final repo = _repoWithPharmacies();
     await tester.pumpWidget(MaterialApp(
       home: VisitScreen(
         repository: repo,

@@ -103,6 +103,19 @@ class VisitDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           InfoSection(
+            title: 'Transferencias',
+            rows: visit.transfers.isEmpty
+                ? [const InfoRow('Sin transferencias', '—')]
+                : [
+                    for (final transfer in visit.transfers)
+                      InfoRow(
+                        transfer.product,
+                        '${transfer.distributor} · ${transfer.quantity} unidades',
+                      ),
+                  ],
+          ),
+          const SizedBox(height: 12),
+          InfoSection(
             title: 'Competencia y observaciones',
             rows: [
               InfoRow(

@@ -5,12 +5,23 @@ import '../models/geo_point.dart';
 import '../models/pharmacy.dart';
 import '../models/product_record.dart';
 import '../models/track_point.dart';
+import '../models/transfer.dart';
 import '../models/visit.dart';
 import '../models/visit_photo.dart';
 import 'local_store.dart';
 
 const _dbName = 'transferencista.db';
-const _dbVersion = 3;
+const _dbVersion = 4;
+
+/// Transferencias (pedidos) de una visita. Se creó en la versión 4.
+const _visitTransfersTable = '''
+  CREATE TABLE visit_transfers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    visit_id TEXT NOT NULL REFERENCES visits(id) ON DELETE CASCADE,
+    product TEXT NOT NULL,
+    distributor TEXT NOT NULL,
+    quantity INTEGER NOT NULL
+  )''';
 
 /// Tabla de productos por visita. Se creó en la versión 2; `photo_path` se agregó
 /// en la versión 3 (ver `onUpgrade`).
@@ -74,6 +85,7 @@ const _schema = <String>[
     tracking_consent INTEGER NOT NULL DEFAULT 0
   )''',
   _visitProductsTable,
+  _visitTransfersTable,
   '''
   CREATE TABLE visit_photos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,11 +103,6 @@ const _schema = <String>[
     lng REAL NOT NULL,
     acc REAL NOT NULL,
     distance REAL NOT NULL
-  )''',
-  '''
-  CREATE TABLE app_meta (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
   )''',
 ];
 
@@ -124,6 +131,9 @@ class SqfliteStore implements LocalStore {
         } else if (oldVersion < 3) {
           await db.execute('ALTER TABLE visit_products ADD COLUMN photo_path TEXT');
         }
+        if (oldVersion < 4) {
+          await db.execute(_visitTransfersTable);
+        }
       },
     );
     return SqfliteStore._(db);
@@ -131,16 +141,10 @@ class SqfliteStore implements LocalStore {
 
   @override
   Future<StoreSnapshot> loadSnapshot() async {
-    final meta = await _db.query(
-      'app_meta',
-      where: 'key = ?',
-      whereArgs: ['seeded'],
-    );
-    final seeded = meta.isNotEmpty && meta.first['value'] == '1';
-
     final pharmacyRows = await _db.query('pharmacies');
     final visitRows = await _db.query('visits');
     final productRows = await _db.query('visit_products', orderBy: 'visit_id, product');
+    final transferRows = await _db.query('visit_transfers', orderBy: 'id');
     final photoRows = await _db.query('visit_photos', orderBy: 'id');
     final trackRows = await _db.query('track_points', orderBy: 'id');
     final planRows = await _db.query('plan_items', orderBy: 'day, position');
@@ -149,6 +153,17 @@ class SqfliteStore implements LocalStore {
     for (final row in productRows) {
       productsByVisit.putIfAbsent(row['visit_id'] as String, () => []).add(
             _productFromRow(row),
+          );
+    }
+
+    final transfersByVisit = <String, List<Transfer>>{};
+    for (final row in transferRows) {
+      transfersByVisit.putIfAbsent(row['visit_id'] as String, () => []).add(
+            Transfer(
+              product: row['product'] as String,
+              distributor: row['distributor'] as String,
+              quantity: row['quantity'] as int,
+            ),
           );
     }
 
@@ -190,13 +205,13 @@ class SqfliteStore implements LocalStore {
     }
 
     return StoreSnapshot(
-      seeded: seeded,
       pharmacies: [for (final row in pharmacyRows) _pharmacyFromRow(row)],
       visits: [
         for (final row in visitRows)
           _visitFromRow(
             row,
             products: productsByVisit[row['id'] as String] ?? const [],
+            transfers: transfersByVisit[row['id'] as String] ?? const [],
             photos: photosByVisit[row['id'] as String] ?? const [],
             track: trackByVisit[row['id'] as String] ?? const [],
           ),
@@ -277,6 +292,16 @@ class SqfliteStore implements LocalStore {
         });
       }
 
+      await txn.delete('visit_transfers', where: 'visit_id = ?', whereArgs: [visit.id]);
+      for (final transfer in visit.transfers) {
+        await txn.insert('visit_transfers', {
+          'visit_id': visit.id,
+          'product': transfer.product,
+          'distributor': transfer.distributor,
+          'quantity': transfer.quantity,
+        });
+      }
+
       await txn.delete('visit_photos', where: 'visit_id = ?', whereArgs: [visit.id]);
       for (final photo in visit.photos) {
         await txn.insert('visit_photos', {
@@ -299,15 +324,6 @@ class SqfliteStore implements LocalStore {
         });
       }
     });
-  }
-
-  @override
-  Future<void> markSeeded() async {
-    await _db.insert(
-      'app_meta',
-      {'key': 'seeded', 'value': '1'},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
   }
 
   static Pharmacy _pharmacyFromRow(Map<String, Object?> row) {
@@ -340,6 +356,7 @@ class SqfliteStore implements LocalStore {
   static Visit _visitFromRow(
     Map<String, Object?> row, {
     required List<ProductRecord> products,
+    required List<Transfer> transfers,
     required List<VisitPhoto> photos,
     required List<TrackPoint> track,
   }) {
@@ -360,6 +377,7 @@ class SqfliteStore implements LocalStore {
       arrival: DateTime.fromMillisecondsSinceEpoch(row['arrival_ms'] as int),
       departure: DateTime.fromMillisecondsSinceEpoch(row['departure_ms'] as int),
       products: products,
+      transfers: transfers,
       competitors: row['competitors'] as String,
       notes: row['notes'] as String,
       checkIn: geo('check_in_lat', 'check_in_lng', 'check_in_acc'),

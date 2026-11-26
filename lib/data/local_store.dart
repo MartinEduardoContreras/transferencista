@@ -12,14 +12,11 @@ String dayKey(DateTime day) {
 /// Datos leídos del almacenamiento local al iniciar la app.
 class StoreSnapshot {
   const StoreSnapshot({
-    required this.seeded,
     this.pharmacies = const [],
     this.visits = const [],
     this.plans = const {},
   });
 
-  /// True si los datos de ejemplo ya se cargaron alguna vez.
-  final bool seeded;
   final List<Pharmacy> pharmacies;
   final List<Visit> visits;
   final Map<DateTime, List<String>> plans;
@@ -35,22 +32,18 @@ abstract class LocalStore {
   /// Reemplaza el plan del día completo, en el orden dado.
   Future<void> savePlan(DateTime day, List<String> pharmacyIds);
 
-  /// Guarda la visita con sus fotos y puntos de trayecto.
+  /// Guarda la visita con sus productos, transferencias, fotos y puntos de trayecto.
   Future<void> saveVisit(Visit visit);
-
-  Future<void> markSeeded();
 }
 
 /// Almacenamiento en memoria: no persiste nada entre ejecuciones. Se usa en pruebas.
 class MemoryStore implements LocalStore {
-  bool _seeded = false;
   final Map<String, Pharmacy> _pharmacies = {};
   final Map<String, Visit> _visits = {};
   final Map<DateTime, List<String>> _plans = {};
 
   @override
   Future<StoreSnapshot> loadSnapshot() async => StoreSnapshot(
-        seeded: _seeded,
         pharmacies: _pharmacies.values.toList(),
         visits: _visits.values.toList(),
         plans: {for (final e in _plans.entries) e.key: List.of(e.value)},
@@ -74,10 +67,5 @@ class MemoryStore implements LocalStore {
   @override
   Future<void> saveVisit(Visit visit) async {
     _visits[visit.id] = visit;
-  }
-
-  @override
-  Future<void> markSeeded() async {
-    _seeded = true;
   }
 }
