@@ -43,13 +43,21 @@ class HomeScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                const Text('Planeación del día'),
-                Text(
-                  formatDate(today),
-                  style: Theme.of(context).textTheme.bodySmall,
+                Image.asset('assets/images/logo.png', height: 36),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Planeación del día'),
+                      Text(
+                        formatDate(today),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

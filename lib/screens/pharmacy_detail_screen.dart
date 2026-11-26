@@ -91,6 +91,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                   if (selected != null)
                     DropdownButtonFormField<String>(
                       initialValue: selected,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Producto',
                         border: OutlineInputBorder(),
