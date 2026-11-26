@@ -333,11 +333,8 @@ void main() {
       home: NewPharmacyScreen(repository: repo),
     ));
 
-    await tester.dragUntilVisible(
-      find.text('Guardar farmacia'),
-      find.byType(ListView),
-      const Offset(0, -200),
-    );
+    await tester.ensureVisible(find.text('Guardar farmacia'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar farmacia'));
     await tester.pumpAndSettle();
 
@@ -348,6 +345,29 @@ void main() {
     expect(find.text('Escribe el nombre de la farmacia'), findsOneWidget);
     expect(find.text('Escribe la zona'), findsOneWidget);
     expect(repo.pharmacies.length, before);
+  });
+
+  test('la prioridad se muestra en escala de 5 pasos y se guarda como número', () {
+    expect(RoutePriority.fromRank(1), RoutePriority.muyAlta);
+    expect(RoutePriority.fromRank(5), RoutePriority.muyBaja);
+    expect(RoutePriority.muyAlta.label, 'Muy alta');
+    expect(RoutePriority.values.map((p) => p.label).first, 'Muy baja');
+  });
+
+  test('editar una farmacia reemplaza responsable y prioridad, con el mismo id', () async {
+    final repo = _repoWithPharmacies();
+    await repo.updatePharmacy(Pharmacy(
+      id: _alfa.id,
+      name: _alfa.name,
+      chain: _alfa.chain,
+      zone: _alfa.zone,
+      priority: RoutePriority.muyAlta.rank,
+      manager: 'Laura Gómez',
+    ));
+    final updated = repo.pharmacyById(_alfa.id)!;
+    expect(updated.manager, 'Laura Gómez');
+    expect(updated.routePriority, RoutePriority.muyAlta);
+    expect(repo.pharmacies.length, _repoWithPharmacies().pharmacies.length);
   });
 
   testWidgets('la pestaña Visitas muestra el historial', (tester) async {

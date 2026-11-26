@@ -134,6 +134,15 @@ class AppRepository extends ChangeNotifier {
     await _store.savePharmacy(pharmacy);
   }
 
+  /// Reemplaza los datos de una farmacia existente, identificada por su id.
+  Future<void> updatePharmacy(Pharmacy pharmacy) async {
+    final index = _pharmacies.indexWhere((p) => p.id == pharmacy.id);
+    if (index < 0) return;
+    _pharmacies[index] = pharmacy;
+    notifyListeners();
+    await _store.savePharmacy(pharmacy);
+  }
+
   Future<void> saveVisit(Visit visit) async {
     _visits.add(visit);
     notifyListeners();

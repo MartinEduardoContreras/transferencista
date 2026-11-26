@@ -63,8 +63,15 @@ class _VisitScreenState extends State<VisitScreen> {
   final List<Transfer> _transfers = [];
   final _competitors = TextEditingController();
   final _notes = TextEditingController();
-  final _signerName = TextEditingController();
+  late final TextEditingController _signerName;
   final _signature = SignatureController();
+
+  @override
+  void initState() {
+    super.initState();
+    // El responsable viene de la farmacia, pero la persona puede cambiarlo.
+    _signerName = TextEditingController(text: widget.pharmacy.manager);
+  }
 
   @override
   void dispose() {

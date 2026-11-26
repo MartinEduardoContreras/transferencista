@@ -89,9 +89,9 @@ class HomeScreen extends StatelessWidget {
                         Expanded(child: Text(planned[i].name)),
                         const SizedBox(width: 8),
                         Chip(
-                          label: Text('Prioridad ${planned[i].priority}'),
+                          label: Text('Prioridad ${planned[i].routePriority.label}'),
                           visualDensity: VisualDensity.compact,
-                          backgroundColor: planned[i].priority == 1 && !repository.wasVisitedToday(planned[i])
+                          backgroundColor: planned[i].routePriority == RoutePriority.muyAlta && !repository.wasVisitedToday(planned[i])
                               ? Theme.of(context).colorScheme.errorContainer
                               : null,
                         ),

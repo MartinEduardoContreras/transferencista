@@ -15,11 +15,14 @@ const pharmacyChains = <String>[
   'Otra',
 ];
 
-/// Formulario para crear una farmacia nueva. Al guardar devuelve la farmacia creada.
+/// Formulario para crear una farmacia nueva o editar una existente. Si se pasa
+/// [pharmacy], los campos se llenan con sus datos y se actualiza en lugar de
+/// crear. Al guardar devuelve la farmacia guardada.
 class NewPharmacyScreen extends StatefulWidget {
-  const NewPharmacyScreen({super.key, required this.repository});
+  const NewPharmacyScreen({super.key, required this.repository, this.pharmacy});
 
   final AppRepository repository;
+  final Pharmacy? pharmacy;
 
   @override
   State<NewPharmacyScreen> createState() => _NewPharmacyScreenState();
@@ -33,7 +36,23 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   final _manager = TextEditingController();
 
   String? _chain;
-  int _priority = 3;
+  RoutePriority _priority = RoutePriority.media;
+
+  bool get _isEditing => widget.pharmacy != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.pharmacy;
+    if (p != null) {
+      _name.text = p.name;
+      _zone.text = p.zone;
+      _address.text = p.address;
+      _manager.text = p.manager;
+      _chain = p.chain;
+      _priority = p.routePriority;
+    }
+  }
 
   @override
   void dispose() {
@@ -50,24 +69,38 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final previous = widget.pharmacy;
     final pharmacy = Pharmacy(
-      id: widget.repository.newPharmacyId(),
+      id: previous?.id ?? widget.repository.newPharmacyId(),
       name: _name.text.trim(),
       chain: _chain!,
       zone: _zone.text.trim(),
       address: _address.text.trim(),
       manager: _manager.text.trim(),
-      priority: _priority,
+      priority: _priority.rank,
+      daysSinceLastPurchase: previous?.daysSinceLastPurchase,
     );
-    await widget.repository.addPharmacy(pharmacy);
+    if (previous == null) {
+      await widget.repository.addPharmacy(pharmacy);
+    } else {
+      await widget.repository.updatePharmacy(pharmacy);
+    }
     if (!mounted) return;
     Navigator.of(context).pop(pharmacy);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Si la cadena guardada ya no está en la lista, se agrega para no perderla.
+    final chains = [
+      ...pharmacyChains,
+      if (_chain != null && !pharmacyChains.contains(_chain)) _chain!,
+    ];
+
     return Scaffold(
-      appBar: const BrandAppBar(title: 'Nueva farmacia'),
+      appBar: BrandAppBar(
+        title: _isEditing ? 'Editar farmacia' : 'Nueva farmacia',
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -91,7 +124,7 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                for (final chain in pharmacyChains)
+                for (final chain in chains)
                   DropdownMenuItem(value: chain, child: Text(chain)),
               ],
               onChanged: (value) => setState(() => _chain = value),
@@ -126,18 +159,16 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
+            DropdownButtonFormField<RoutePriority>(
               initialValue: _priority,
               decoration: const InputDecoration(
                 labelText: 'Prioridad en la ruta *',
+                helperText: 'De baja a alta',
                 border: OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('1 · más alta')),
-                DropdownMenuItem(value: 2, child: Text('2')),
-                DropdownMenuItem(value: 3, child: Text('3 · media')),
-                DropdownMenuItem(value: 4, child: Text('4')),
-                DropdownMenuItem(value: 5, child: Text('5 · más baja')),
+              items: [
+                for (final priority in RoutePriority.values)
+                  DropdownMenuItem(value: priority, child: Text(priority.label)),
               ],
               onChanged: (value) =>
                   setState(() => _priority = value ?? _priority),
@@ -151,7 +182,7 @@ class _NewPharmacyScreenState extends State<NewPharmacyScreen> {
             FilledButton.icon(
               onPressed: () => _save(),
               icon: const Icon(Icons.save),
-              label: const Text('Guardar farmacia'),
+              label: Text(_isEditing ? 'Guardar cambios' : 'Guardar farmacia'),
             ),
           ],
         ),

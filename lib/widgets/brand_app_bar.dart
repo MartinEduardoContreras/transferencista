@@ -2,13 +2,21 @@ import 'package:material_ui/material_ui.dart';
 
 /// Barra superior de la app: logo de Medical Farma seguido del título de la pantalla.
 class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const BrandAppBar({super.key, required this.title, this.subtitle});
+  const BrandAppBar({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.actions,
+  });
 
   static const double _toolbarHeight = 72;
   static const double _logoHeight = 56;
 
   final String title;
   final String? subtitle;
+
+  /// Acciones opcionales a la derecha de la barra.
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(_toolbarHeight);
@@ -17,6 +25,7 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       toolbarHeight: _toolbarHeight,
+      actions: actions,
       title: Row(
         children: [
           Image.asset('assets/images/logo_medical_farma.png', height: _logoHeight),
