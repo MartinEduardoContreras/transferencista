@@ -4,14 +4,10 @@ import '../data/app_repository.dart';
 import '../models/pharmacy.dart';
 import '../widgets/brand_app_bar.dart';
 
-/// Cadenas o tipos de farmacia que aparecen en el proceso del documento.
+/// Cadena o tipo de farmacia que se puede elegir al crear o editar.
 const pharmacyChains = <String>[
   'Independiente',
-  'Drogas La Rebaja',
-  'Cruz Verde',
-  'Farmatodo',
-  'Cafam',
-  'Colsubsidio',
+  'De cadena',
   'Otra',
 ];
 

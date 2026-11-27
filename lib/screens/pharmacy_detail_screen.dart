@@ -11,7 +11,7 @@ import 'visit_screen.dart';
 import '../widgets/brand_app_bar.dart';
 
 /// Ficha de la farmacia y preparación antes de la visita: qué sabe la
-/// transferencista del cliente. Permite editar los datos de la farmacia.
+/// transferencista del cliente. Desde Farmacias también permite editar sus datos.
 class PharmacyDetailScreen extends StatefulWidget {
   const PharmacyDetailScreen({
     super.key,
@@ -88,12 +88,14 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
         return Scaffold(
           appBar: BrandAppBar(
             title: p.name,
+            // La edición solo se ofrece desde Farmacias, no desde la ruta de Hoy.
             actions: [
-              IconButton(
-                tooltip: 'Editar farmacia',
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _editPharmacy(p),
-              ),
+              if (!widget.showStartVisit)
+                IconButton(
+                  tooltip: 'Editar farmacia',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _editPharmacy(p),
+                ),
             ],
           ),
           body: ListView(

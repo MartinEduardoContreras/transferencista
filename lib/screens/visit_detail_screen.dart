@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/app_repository.dart';
 import '../models/product_record.dart';
 import '../models/visit.dart';
+import '../models/visit_photo.dart';
 import '../utils/format.dart';
 import '../widgets/info_section.dart';
 import '../widgets/brand_app_bar.dart';
@@ -21,6 +22,14 @@ class VisitDetailScreen extends StatelessWidget {
   final Visit visit;
 
   static String _yesNo(bool value) => value ? 'Sí' : 'No';
+
+  /// Ruta de la foto de exhibición de [kind], o null si no se tomó.
+  String? _photoPath(VisitPhotoKind kind) {
+    for (final photo in visit.photos) {
+      if (photo.kind == kind) return photo.path;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,34 +67,34 @@ class VisitDetailScreen extends StatelessWidget {
             _ProductSection(record: record),
             const SizedBox(height: 12),
           ],
-          InfoSection(
-            title: 'Fotos',
-            rows: visit.photos.isEmpty
-                ? [const InfoRow('Sin fotos', '—')]
-                : [
-                    for (final photo in visit.photos)
-                      InfoRow(photo.kind.label, formatTime(photo.takenAt)),
-                  ],
-          ),
-          if (visit.photos.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                for (final photo in visit.photos) ...[
-                  Expanded(
-                    child: AspectRatio(
-                      aspectRatio: 3 / 4,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(File(photo.path), fit: BoxFit.cover),
-                      ),
-                    ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Foto de exhibición',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _PhotoBox(
+                        label: 'Antes',
+                        path: _photoPath(VisitPhotoKind.before),
+                      ),
+                      const SizedBox(width: 12),
+                      _PhotoBox(
+                        label: 'Después',
+                        path: _photoPath(VisitPhotoKind.after),
+                      ),
+                    ],
+                  ),
                 ],
-              ],
+              ),
             ),
-          ],
+          ),
           const SizedBox(height: 12),
           InfoSection(
             title: 'Registro de trayecto',
@@ -152,6 +161,45 @@ class VisitDetailScreen extends StatelessWidget {
   }
 }
 
+/// Recuadro de una foto de exhibición (Antes o Después). Si no hay foto, queda en blanco.
+class _PhotoBox extends StatelessWidget {
+  const _PhotoBox({required this.label, required this.path});
+
+  final String label;
+  final String? path;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final file = path;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: file == null
+                    ? null
+                    : Image.file(File(file), fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProductSection extends StatelessWidget {
   const _ProductSection({required this.record});
 
@@ -159,7 +207,9 @@ class _ProductSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final section = InfoSection(
+    final photo = record.photoPath;
+    // La foto va dentro de la tarjeta del producto, debajo de sus datos.
+    return InfoSection(
       title: record.product,
       rows: [
         InfoRow('Exhibido', VisitDetailScreen._yesNo(record.displayed)),
@@ -170,22 +220,18 @@ class _ProductSection extends StatelessWidget {
         InfoRow('Material POP', VisitDetailScreen._yesNo(record.popPresent)),
         InfoRow('Hay agotados', VisitDetailScreen._yesNo(record.outOfStock)),
       ],
-    );
-    final photo = record.photoPath;
-    if (photo == null) return section;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        section,
-        const SizedBox(height: 8),
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(File(photo), fit: BoxFit.cover),
-          ),
-        ),
-      ],
+      footer: photo == null
+          ? null
+          : SizedBox(
+              width: double.infinity,
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(photo), fit: BoxFit.cover),
+                ),
+              ),
+            ),
     );
   }
 }

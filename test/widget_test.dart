@@ -11,6 +11,7 @@ import 'package:transferencista/models/product_record.dart';
 import 'package:transferencista/models/transfer.dart';
 import 'package:transferencista/models/visit.dart';
 import 'package:transferencista/screens/new_pharmacy_screen.dart';
+import 'package:transferencista/screens/splash_screen.dart';
 import 'package:transferencista/screens/transfer_screen.dart';
 import 'package:transferencista/screens/visit_screen.dart';
 import 'package:transferencista/services/location_service.dart';
@@ -315,6 +316,7 @@ void main() {
     final repo = _repoWithPharmacies(plans: {DateTime.now(): ['ph-001']});
     await tester.pumpWidget(
       TransferencistaApp(
+        showSplash: false,
         repository: repo,
         locationService: const FakeLocationService(
           LocationResult.failure(LocationFailure.unavailable),
@@ -370,6 +372,20 @@ void main() {
     expect(repo.pharmacies.length, _repoWithPharmacies().pharmacies.length);
   });
 
+  testWidgets('la pantalla de inicio muestra el texto y termina con el callback', (tester) async {
+    var finished = false;
+    await tester.pumpWidget(MaterialApp(
+      home: SplashScreen(
+        onFinished: () => finished = true,
+        duration: const Duration(milliseconds: 500),
+      ),
+    ));
+    expect(find.text('Transferencista & Impulsor'), findsOneWidget);
+    expect(finished, isFalse);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(finished, isTrue);
+  });
+
   testWidgets('la pestaña Visitas muestra el historial', (tester) async {
     final repo = _repoWithPharmacies();
     final now = DateTime.now();
@@ -381,6 +397,7 @@ void main() {
     ));
     await tester.pumpWidget(
       TransferencistaApp(
+        showSplash: false,
         repository: repo,
         locationService: const FakeLocationService(
           LocationResult.failure(LocationFailure.unavailable),

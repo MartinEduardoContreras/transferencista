@@ -99,10 +99,12 @@ class AppRepository extends ChangeNotifier {
     return matches.isEmpty ? null : matches.first;
   }
 
-  bool wasVisitedToday(Pharmacy pharmacy) {
-    final now = DateTime.now();
+  bool wasVisitedToday(Pharmacy pharmacy) => wasVisitedOn(pharmacy, DateTime.now());
+
+  /// Si la farmacia tiene una visita registrada en el día [day].
+  bool wasVisitedOn(Pharmacy pharmacy, DateTime day) {
     return _visits.any(
-      (v) => v.pharmacyId == pharmacy.id && _isSameDay(v.arrival, now),
+      (v) => v.pharmacyId == pharmacy.id && _isSameDay(v.arrival, day),
     );
   }
 

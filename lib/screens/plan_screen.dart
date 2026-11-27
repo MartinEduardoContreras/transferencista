@@ -6,7 +6,8 @@ import '../utils/format.dart';
 import '../widgets/brand_app_bar.dart';
 
 /// Plan de visitas: elige una fecha y ordena las farmacias en el orden de visita.
-/// Los cambios se guardan al momento.
+/// Los cambios se guardan al momento. Una farmacia cuya visita ya se realizó en
+/// ese día no se puede quitar ni cambiar de lugar.
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key, required this.repository});
 
@@ -53,6 +54,34 @@ class _PlanScreenState extends State<PlanScreen> {
     if (picked != null) {
       widget.repository.setPlan(_day, [...currentIds, picked.id]);
     }
+  }
+
+  /// Visita ya realizada en el día del plan: no se puede quitar ni mover.
+  bool _isLocked(String pharmacyId) {
+    final pharmacy = widget.repository.pharmacyById(pharmacyId);
+    return pharmacy != null && widget.repository.wasVisitedOn(pharmacy, _day);
+  }
+
+  void _showLocked() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('La visita ya se realizó: no se puede cambiar en el plan'),
+      ),
+    );
+  }
+
+  void _reorder(List<String> ids, int oldIndex, int newIndex) {
+    final updated = [...ids];
+    final moved = updated.removeAt(oldIndex);
+    updated.insert(newIndex, moved);
+    // Ninguna visita realizada puede quedar en otra posición.
+    for (var i = 0; i < ids.length; i++) {
+      if (_isLocked(ids[i]) && updated[i] != ids[i]) {
+        _showLocked();
+        return;
+      }
+    }
+    widget.repository.setPlan(_day, updated);
   }
 
   @override
@@ -115,12 +144,9 @@ class _PlanScreenState extends State<PlanScreen> {
                         ),
                       )
                     : ReorderableListView(
-                        onReorderItem: (oldIndex, newIndex) {
-                          final updated = [...ids];
-                          final moved = updated.removeAt(oldIndex);
-                          updated.insert(newIndex, moved);
-                          repo.setPlan(_day, updated);
-                        },
+                        buildDefaultDragHandles: false,
+                        onReorderItem: (oldIndex, newIndex) =>
+                            _reorder(ids, oldIndex, newIndex),
                         children: [
                           for (var i = 0; i < planned.length; i++)
                             ListTile(
@@ -128,20 +154,32 @@ class _PlanScreenState extends State<PlanScreen> {
                               leading: CircleAvatar(child: Text('${i + 1}')),
                               title: Text(planned[i].name),
                               subtitle: Text(planned[i].zone),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Quitar del plan',
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () => repo.setPlan(
-                                      _day,
-                                      [...ids]..remove(planned[i].id),
+                              trailing: _isLocked(planned[i].id)
+                                  ? const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.green),
+                                        SizedBox(width: 4),
+                                        Text('Visitada'),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          tooltip: 'Quitar del plan',
+                                          icon: const Icon(Icons.close),
+                                          onPressed: () => repo.setPlan(
+                                            _day,
+                                            [...ids]..remove(planned[i].id),
+                                          ),
+                                        ),
+                                        ReorderableDragStartListener(
+                                          index: i,
+                                          child: const Icon(Icons.drag_handle),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const Icon(Icons.drag_handle),
-                                ],
-                              ),
                             ),
                         ],
                       ),

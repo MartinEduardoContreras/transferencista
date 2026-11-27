@@ -2,10 +2,18 @@ import 'package:material_ui/material_ui.dart';
 
 /// Tarjeta con título y filas clave/valor, usada en la preparación de visita.
 class InfoSection extends StatelessWidget {
-  const InfoSection({super.key, required this.title, required this.rows});
+  const InfoSection({
+    super.key,
+    required this.title,
+    required this.rows,
+    this.footer,
+  });
 
   final String title;
   final List<InfoRow> rows;
+
+  /// Contenido extra dentro de la tarjeta, debajo de las filas (por ejemplo, una foto).
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +27,10 @@ class InfoSection extends StatelessWidget {
             Text(title, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             ...rows,
+            if (footer != null) ...[
+              const SizedBox(height: 8),
+              footer!,
+            ],
           ],
         ),
       ),
